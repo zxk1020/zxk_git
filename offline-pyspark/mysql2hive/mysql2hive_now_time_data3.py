@@ -9,8 +9,8 @@ from pyspark.sql.functions import lit
 
 # -------------------------- 配置项（在此处修改库名和连接信息） --------------------------
 # 直接修改以下两个参数即可指定同步的库名
-MYSQL_DB = "tms01"  # MySQL数据库名
-HIVE_DB = "wl"  # Hive数据库名
+MYSQL_DB = "gd7"  # MySQL数据库名
+HIVE_DB = "gd7"  # Hive数据库名
 
 DEFAULT_MYSQL_CONFIG = {
     "host": "192.168.142.130",
@@ -244,10 +244,104 @@ def sync_schema(mysql_db, hive_db, mysql_config, spark):
 
 
 # -------------------------- 数据同步相关函数 --------------------------
+# def sync_table_data(mysql_db, hive_db, table_name, mysql_config, spark):
+#     """同步单表数据"""
+#     try:
+#         mysql_url = f"jdbc:mysql://{mysql_config['host']}:{mysql_config['port']}/{mysql_db}?useSSL=false"
+#         jdbc_properties = {
+#             "user": mysql_config["user"],
+#             "password": mysql_config["password"],
+#             "driver": "com.mysql.jdbc.Driver",
+#             "fetchsize": "1000"
+#         }
+#
+#         dt = datetime.datetime.now().strftime("%Y%m%d")
+#         query = f"(SELECT *, '{dt}' as dt FROM {table_name}) as tmp"
+#         df = spark.read.jdbc(
+#             url=mysql_url,
+#             table=query,
+#             properties=jdbc_properties
+#         )
+#
+#         df.write.mode("overwrite") \
+#             .partitionBy("dt") \
+#             .saveAsTable(f"{hive_db}.ods_{table_name}")
+#
+#         print(f"✅ 表 {mysql_db}.{table_name} 数据同步至 {hive_db}.ods_{table_name}（dt={dt}）完成")
+#         return True
+#     except Exception as e:
+#         print(f"❌ 表 {table_name} 数据同步失败：{str(e)}")
+#         return False
+# def sync_table_data(mysql_db, hive_db, table_name, mysql_config, spark):
+#     """同步单表数据（含元数据更新）"""
+#     try:
+#         # 1. 配置MySQL连接
+#         mysql_url = f"jdbc:mysql://{mysql_config['host']}:{mysql_config['port']}/{mysql_db}?useSSL=false"
+#         jdbc_properties = {
+#             "user": mysql_config["user"],
+#             "password": mysql_config["password"],
+#             "driver": "com.mysql.jdbc.Driver",
+#             "fetchsize": "1000"
+#         }
+#
+#         # 2. 准备分区值
+#         dt = datetime.datetime.now().strftime("%Y%m%d")
+#         query = f"(SELECT *, '{dt}' as dt FROM {table_name}) as tmp"
+#
+#         # 3. 读取MySQL数据
+#         df = spark.read.jdbc(
+#             url=mysql_url,
+#             table=query,
+#             properties=jdbc_properties
+#         )
+#
+#         # 4. 定义HDFS存储路径
+#         hdfs_path = f"/warehouse/{hive_db}/ods/ods_{table_name}/dt={dt}"
+#
+#         # 5. 写入数据并更新元数据
+#         (df.write
+#          .mode("overwrite")
+#          .partitionBy("dt")
+#          .option("path", hdfs_path)  # 显式指定存储路径
+#          .saveAsTable(f"{hive_db}.ods_{table_name}"))
+#
+#         # 6. 强制更新元数据
+#         spark.sql(f"MSCK REPAIR TABLE {hive_db}.ods_{table_name}")
+#
+#         print(f"✅ 表 {mysql_db}.ods_{table_name} 同步完成 | 路径: ods_{hdfs_path}")
+#
+#         verify_partition(spark, hive_db, f"ods_{table_name}", dt)
+#
+#
+#     except Exception as e:
+#         print(f"❌ 同步失败: {str(e)}")
+#         return False
+#
+#
+# def verify_partition(spark, db, table, dt):
+#     """验证分区元数据和HDFS路径"""
+#     try:
+#         # 检查元数据
+#         spark.sql(f"SHOW PARTITIONS {db}.{table} PARTITION(dt='{dt}')").collect()
+#
+#         # 检查HDFS路径（需Hadoop客户端支持）
+#         hdfs_path = f"/warehouse/{db}/ods/ods_{table}/dt={dt}"
+#         hadoop = spark._jvm.org.apache.hadoop.fs.FileSystem.get(
+#             spark._jsc.hadoopConfiguration()
+#         )
+#         if not hadoop.exists(spark._jvm.org.apache.hadoop.fs.Path(hdfs_path)):
+#             raise Exception(f"HDFS路径不存在: {hdfs_path}")
+#
+#         return True
+#     except Exception as e:
+#         print(f"❌ 验证失败: {str(e)}")
+#         return False
+
 def sync_table_data(mysql_db, hive_db, table_name, mysql_config, spark):
-    """同步单表数据"""
+    """同步单表数据（含元数据更新）"""
     try:
-        mysql_url = f"jdbc:mysql://{mysql_config['host']}:{mysql_config['port']}/{mysql_db}?useSSL=false"
+        # 1. 配置MySQL连接（8.x驱动）
+        mysql_url = f"jdbc:mysql://{mysql_config['host']}:{mysql_config['port']}/{mysql_db}?useSSL=false&serverTimezone=UTC"
         jdbc_properties = {
             "user": mysql_config["user"],
             "password": mysql_config["password"],
@@ -255,22 +349,49 @@ def sync_table_data(mysql_db, hive_db, table_name, mysql_config, spark):
             "fetchsize": "1000"
         }
 
+        # 2. 准备分区值
         dt = datetime.datetime.now().strftime("%Y%m%d")
         query = f"(SELECT *, '{dt}' as dt FROM {table_name}) as tmp"
-        df = spark.read.jdbc(
-            url=mysql_url,
-            table=query,
-            properties=jdbc_properties
+
+        # 3. 读取数据
+        df = spark.read.jdbc(url=mysql_url, table=query, properties=jdbc_properties)
+
+        # 4. 写入Hive
+        hdfs_path = f"/warehouse/{hive_db}/ods/ods_{table_name}/dt={dt}"
+        (df.write
+         .mode("overwrite")
+         .partitionBy("dt")
+         .option("path", hdfs_path)
+         .saveAsTable(f"{hive_db}.ods_{table_name}"))
+
+        # 5. 验证分区
+        if not verify_partition(spark, hive_db, f"ods_{table_name}", dt):
+            raise Exception("分区验证失败")
+
+        print(f"✅ 同步成功 | 路径: {hdfs_path}")
+        return True
+
+    except Exception as e:
+        print(f"❌ 同步失败: {str(e)}")
+        return False
+
+
+def verify_partition(spark, db, table, dt):
+    """修正后的分区验证逻辑"""
+    try:
+        # 检查元数据
+        spark.sql(f"SHOW PARTITIONS {db}.{table} PARTITION(dt='{dt}')").collect()
+
+        # 检查HDFS路径（修正路径拼接）
+        hdfs_path = f"/warehouse/{db}/ods/{table}/dt={dt}"
+        hadoop = spark._jvm.org.apache.hadoop.fs.FileSystem.get(
+            spark._jsc.hadoopConfiguration()
         )
-
-        df.write.mode("overwrite") \
-            .partitionBy("dt") \
-            .saveAsTable(f"{hive_db}.ods_{table_name}")
-
-        print(f"✅ 表 {mysql_db}.{table_name} 数据同步至 {hive_db}.ods_{table_name}（dt={dt}）完成")
+        if not hadoop.exists(spark._jvm.org.apache.hadoop.fs.Path(hdfs_path)):
+            raise Exception(f"HDFS路径不存在: {hdfs_path}")
         return True
     except Exception as e:
-        print(f"❌ 表 {table_name} 数据同步失败：{str(e)}")
+        print(f"❌ 验证失败: {str(e)}")
         return False
 
 
@@ -284,7 +405,7 @@ def sync_all_data(mysql_db, hive_db, mysql_config, spark):
 
         for table in tables:
             if not sync_table_data(mysql_db, hive_db, table, mysql_config, spark):
-                print(f"❌ 数据同步中断：表 {table} 同步失败")
+                print(f"❌ 数据同步中断：表 ods_{table} 同步失败")
                 return False
         return True
     finally:
@@ -304,8 +425,13 @@ def create_spark_session(hive_config):
         .config("spark.jars", jdbc_jar) \
         .config("hive.metastore.uris", hive_config["metastore_uris"]) \
         .config("spark.sql.parquet.writeLegacyFormat", "true") \
+        .config("spark.cleaner.referenceTracking.blocking", "false") \
+        .config("spark.cleaner.periodicGC.interval", "1min") \
         .config("spark.hadoop.fs.defaultFS", hive_config["hdfs_default_fs"]) \
-        .config("spark.local.dir", "E:\spark_temp") \
+        .config("spark.local.dir", "E:/spark_temp") \
+        .config("spark.driver.memory", "4g") \
+        .config("spark.executor.extraJavaOptions", "-XX:+UseG1GC") \
+        .config("spark.sql.adaptive.enabled", "true") \
         .enableHiveSupport() \
         .getOrCreate()
 

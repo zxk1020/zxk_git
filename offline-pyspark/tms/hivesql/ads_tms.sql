@@ -1171,6 +1171,11 @@ from ads_express_org_stats;
 -- 司机完成运输次数、里程、时长
 -- 平均每次运输里程和时长（含副司机时，里程和时长均分）
 -- 数据来源：从班次运输完成表（dws_trans_shift_trans_finish_nd）处理司机信息（含主副司机拆分）后聚合。
+-- 底层：ads_driver_stats →
+-- dws_trans_shift_trans_finish_nd →
+-- dwd_trans_trans_finish_inc →
+-- ods_transport_task/dim_shift_full →
+-- ods_line_base_shift/ods_line_base_info/ods_base_dic/ods_truck_driver
 
 
 -- 第二张表
@@ -1178,12 +1183,23 @@ from ads_express_org_stats;
 -- 统计主题：分城市的快递业务指标
 -- 统计内容：类似省份统计，但按城市（city_id/city_name）维度，统计揽收、派送、分拣数据。
 -- 数据来源：从快递相关表按城市聚合。
+-- 底层：ads_express_city_stats →
+-- dws_trans_org_deliver_suc_1d/dws_trans_org_sort_1d/dws_trans_org_receive_1d/dws_trans_org_deliver_suc_nd/dws_trans_org_sort_nd/dws_trans_org_receive_nd →
+-- dwd_trans_deliver_suc_detail_inc/dwd_bound_sort_inc/dwd_trans_receive_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/ods_order_org_bound/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
+
 
 -- 第三张表
 -- 15. ads_express_org_stats
 -- 统计主题：分机构的快递业务指标
 -- 统计内容：按统计日期、最近天数及机构（org_id/org_name），统计机构的揽收、派送、分拣数据。
 -- 数据来源：从快递相关表按机构聚合。
+-- 底层：ads_express_org_stats →
+-- dws_trans_org_deliver_suc_1d/dws_trans_org_sort_1d/dws_trans_org_receive_1d/dws_trans_org_deliver_suc_nd/dws_trans_org_sort_nd/dws_trans_org_receive_nd →
+-- dwd_trans_deliver_suc_detail_inc/dwd_bound_sort_inc/dwd_trans_receive_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/ods_order_org_bound/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
 
 
 -- 第四张表
@@ -1194,6 +1210,11 @@ from ads_express_org_stats;
 -- 派送成功次数、分拣次数
 -- 数据来源：从快递相关表（dws_trans_org_deliver_suc_1d/nd、dws_trans_org_sort_1d/nd、
 -- dws_trans_org_receive_1d/nd）按省份聚合。
+-- 底层：ads_express_province_stats →
+-- dws_trans_org_deliver_suc_1d/dws_trans_org_sort_1d/dws_trans_org_receive_1d/dws_trans_org_deliver_suc_nd/dws_trans_org_sort_nd/dws_trans_org_receive_nd →
+-- dwd_trans_deliver_suc_detail_inc/dwd_bound_sort_inc/dwd_trans_receive_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/ods_order_org_bound/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
 
 
 -- 第五张表
@@ -1201,6 +1222,11 @@ from ads_express_org_stats;
 -- 统计主题：分线路的运输完成情况
 -- 统计内容：按统计日期、最近天数及线路（line_id/line_name），统计各线路的运输完成指标（次数、里程、时长、运单数）。
 -- 数据来源：从班次运输完成表（dws_trans_shift_trans_finish_nd）按线路分组聚合。
+-- 底层：ads_line_stats →
+-- dws_trans_shift_trans_finish_nd →
+-- dwd_trans_trans_finish_inc →
+-- ods_transport_task/dim_shift_full/dim_truck_full →
+-- ods_line_base_shift/ods_line_base_info/ods_base_dic/ods_truck_info/ods_truck_team/ods_truck_model
 
 
 -- 第六张表
@@ -1210,6 +1236,12 @@ from ads_express_org_stats;
 -- 各类型货物的下单数（order_count）
 -- 各类型货物的下单金额（order_amount）
 -- 数据来源：从分货物类型的下单表（dws_trade_org_cargo_type_order_1d/nd）按货物类型分组聚合。
+-- 底层：ads_order_cargo_type_stats →
+-- dws_trade_org_cargo_type_order_1d/dws_trade_org_cargo_type_order_nd →
+-- dwd_trade_order_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
+
 
 
 -- 第七张表
@@ -1219,6 +1251,11 @@ from ads_express_org_stats;
 -- 完成运输次数、里程、时长
 -- 运输完成运单数
 -- 数据来源：直接从班次运输完成表（dws_trans_shift_trans_finish_nd）提取。
+-- 底层：ads_shift_stats →
+-- dws_trans_shift_trans_finish_nd →
+-- dwd_trans_trans_finish_inc →
+-- ods_transport_task/dim_shift_full/dim_truck_full →
+-- ods_line_base_shift/ods_line_base_info/ods_base_dic/ods_truck_info/ods_truck_team/ods_truck_model/ods_base_organ
 
 
 
@@ -1234,6 +1271,10 @@ from ads_express_org_stats;
 -- 接单总数（receive_order_count）、接单金额（receive_order_amount）
 -- 发单总数（dispatch_order_count）、发单金额（dispatch_order_amount）
 -- 数据来源：从每日 / 多日汇总层表（dws_trans_org_receive_1d/nd、dws_trans_dispatch_1d/nd）聚合计算。
+-- 底层：ads_trans_order_stats →
+-- dws_trans_org_receive_1d/dws_trans_dispatch_1d/dws_trans_org_receive_nd/dws_trans_dispatch_nd →
+-- dwd_trans_receive_detail_inc/dwd_trans_dispatch_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic
 
 -- 2. ads_trans_stats
 -- 统计主题：运输完成情况综合指标
@@ -1242,18 +1283,37 @@ from ads_express_org_stats;
 -- 完成运输里程（trans_finish_distance）
 -- 完成运输时长（trans_finish_dur_sec，单位：秒）
 -- 数据来源：从卡车类型运输完成表（dws_trans_org_truck_model_type_trans_finish_1d）和班次运输完成表（dws_trans_shift_trans_finish_nd）聚合。
+-- 底层：ads_trans_stats →
+-- dws_trans_org_truck_model_type_trans_finish_1d/dws_trans_shift_trans_finish_nd →
+-- dwd_trans_trans_finish_inc →
+-- ods_transport_task/dim_shift_full/dim_truck_full →
+-- ods_line_base_shift/ods_line_base_info/ods_base_dic/ods_truck_info/ods_truck_team/ods_truck_model/ods_base_organ
+
+
 -- 3. ads_trans_order_stats_td
 -- 统计主题：历史至今运输中运单状态
 -- 统计内容：按统计日期，统计当前处于运输中的运单总量及金额：
 -- 运输中运单总数（bounding_order_count）
 -- 运输中运单金额（bounding_order_amount）
 -- 数据来源：通过发单汇总表（dws_trans_dispatch_td）与完成运输表（dws_trans_bound_finish_td，用负数抵消已完成运单）计算差值，得到当前运输中状态。
+-- 底层：ads_trans_order_stats_td →
+-- dws_trans_dispatch_td/dws_trans_bound_finish_td →
+-- dws_trans_dispatch_1d/dwd_trans_bound_finish_detail_inc →
+-- dwd_trans_dispatch_detail_inc/dwd_trans_bound_finish_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic
+
+
 -- 4. ads_order_stats
 -- 统计主题：运单下单综合指标
 -- 统计内容：按统计日期和最近天数，统计下单的总量及金额：
 -- 下单数（order_count）
 -- 下单金额（order_amount）
 -- 数据来源：从按货物类型的下单表（dws_trade_org_cargo_type_order_1d/nd）聚合。
+-- 底层：ads_order_stats →
+-- dws_trade_org_cargo_type_order_1d/dws_trade_org_cargo_type_order_nd →
+-- dwd_trade_order_detail_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
 
 
 
@@ -1265,6 +1325,13 @@ from ads_express_org_stats;
 -- 城市完成运输次数、里程、时长
 -- 平均每次运输里程和时长
 -- 数据来源：结合城市下单表与城市运输完成表（如dws_trade_org_cargo_type_order_1d/nd、dws_trans_shift_trans_finish_nd）关联聚合。
+-- 底层：ads_city_stats →
+-- dws_trade_org_cargo_type_order_1d/dws_trans_org_truck_model_type_trans_finish_1d/dws_trade_org_cargo_type_order_nd/dws_trans_shift_trans_finish_nd →
+-- dwd_trade_order_detail_inc/dwd_trans_trans_finish_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/dim_organ_full/dim_region_full/ods_transport_task/dim_shift_full/dim_truck_full →
+-- ods_base_organ/ods_base_region_info/ods_line_base_shift/ods_line_base_info/ods_truck_info/ods_truck_team/ods_truck_model
+
+
 -- 7. ads_org_stats
 -- 统计主题：分机构的运输与下单综合分析
 -- 统计内容：按统计日期、最近天数及机构（org_id/org_name），统计：
@@ -1272,8 +1339,11 @@ from ads_express_org_stats;
 -- 机构完成运输次数、里程、时长
 -- 平均每次运输里程和时长
 -- 数据来源：结合机构下单表与机构运输完成表（如dws_trade_org_cargo_type_order_1d/nd、dws_trans_shift_trans_finish_nd）关联聚合。
-
-
+-- 底层：ads_org_stats →
+-- dws_trade_org_cargo_type_order_1d/dws_trans_org_truck_model_type_trans_finish_1d/dws_trade_org_cargo_type_order_nd/dws_trans_shift_trans_finish_nd →
+-- dwd_trade_order_detail_inc/dwd_trans_trans_finish_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/dim_organ_full/dim_region_full/ods_transport_task/dim_shift_full/dim_truck_full →
+-- ods_base_organ/ods_base_region_info/ods_line_base_shift/ods_line_base_info/ods_truck_info/ods_truck_team/ods_truck_model
 
 
 
@@ -1284,6 +1354,11 @@ from ads_express_org_stats;
 -- 各类型卡车的完成运输次数、里程、时长
 -- 平均每次运输里程和时长
 -- 数据来源：从班次运输完成表（dws_trans_shift_trans_finish_nd）按卡车类型分组聚合。
+-- 底层：ads_truck_stats →
+-- dws_trans_shift_trans_finish_nd →
+-- dwd_trans_trans_finish_inc/dim_truck_full →
+-- ods_transport_task/ods_truck_info/ods_truck_team/ods_truck_model/ods_base_organ/ods_base_dic →
+-- ods_line_base_shift/ods_line_base_info
 
 
 -- 12. ads_express_stats
@@ -1292,6 +1367,11 @@ from ads_express_org_stats;
 -- 派送成功次数（deliver_suc_count）
 -- 分拣次数（sort_count）
 -- 数据来源：从派送成功表（dws_trans_org_deliver_suc_1d/nd）和分拣表（dws_trans_org_sort_1d/nd）聚合。
+-- 底层：ads_express_stats →
+-- dws_trans_org_deliver_suc_1d/dws_trans_org_sort_1d/dws_trans_org_deliver_suc_nd/dws_trans_org_sort_nd →
+-- dwd_trans_deliver_suc_detail_inc/dwd_bound_sort_inc →
+-- ods_order_cargo/ods_order_info/ods_base_dic/ods_order_org_bound/dim_organ_full/dim_region_full →
+-- ods_base_organ/ods_base_region_info
 
 
 
