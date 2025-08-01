@@ -5,10 +5,11 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import time
 import re
+from collections import defaultdict
 
 # ==================== 动态配置字段（请在此处修改）====================
 # 数据库配置
-MYSQL_DB = "gd7"  # 目标数据库名
+MYSQL_DB = "gd10"  # 目标数据库名
 # 动态数据生成配置
 TOTAL_RECORDS = 3000  # 总记录数
 BATCH_SIZE = 1000  # 每批次记录数
@@ -88,6 +89,28 @@ CREATE_TABLE_SQL_LIST = [
     """
 ]
 
+# ==================== 业务规则和数据关联配置 ====================
+# 商品类别映射
+CATEGORIES = {
+    '电子产品': ['手机', '电脑', '平板', '耳机'],
+    '服装': ['T恤', '牛仔裤', '连衣裙', '外套'],
+    '家居': ['沙发', '床', '餐桌', '椅子'],
+    '图书': ['小说', '教材', '工具书', '杂志']
+}
+
+# 品牌映射
+BRANDS = {
+    '电子产品': ['苹果', '华为', '小米', '联想'],
+    '服装': ['耐克', '阿迪达斯', '优衣库', 'ZARA'],
+    '家居': ['宜家', '红星美凯龙', '顾家家居', '全友'],
+    '图书': ['人民邮电', '机械工业', '清华大学', '电子工业']
+}
+
+# 用户池，用于保持数据一致性
+user_pool = []
+store_pool = []
+item_pool = []
+product_pool = []
 
 # ==================== 核心功能代码 ====================
 # 连接数据库
@@ -100,7 +123,6 @@ def get_db_connection():
         database=MYSQL_CONFIG["database"],
         charset=MYSQL_CONFIG["charset"]
     )
-
 
 # 解析建表语句，提取表名和字段信息（增强自增属性识别）
 def parse_create_table_sql(create_sql):
@@ -138,8 +160,7 @@ def parse_create_table_sql(create_sql):
             })
     return table_name, field_info
 
-
-# 获取过去30天内的随机时间
+# 获取过去指定天数内的随机时间
 def get_random_time():
     start = datetime.now() - timedelta(days=DAY_TIME_RANGE)
     end = datetime.now()
@@ -147,12 +168,30 @@ def get_random_time():
     random_seconds = random.randint(0, int(delta.total_seconds()))
     return start + timedelta(seconds=random_seconds)
 
+# 生成商品相关信息
+def generate_product_info():
+    category = random.choice(list(CATEGORIES.keys()))
+    sub_category = random.choice(CATEGORIES[category])
+    brand = random.choice(BRANDS[category])
+    product_name = f"{brand}{random.randint(1, 9999)}{sub_category}"
+    price = round(random.uniform(10, 9999), 2)
+    return category, sub_category, brand, product_name, price
 
-# 根据字段类型生成随机值（保持不变）
-def generate_random_value(field_type, field_name):
+# 根据字段类型和业务规则生成随机值
+def generate_random_value(field_type, field_name, context=None):
     field_type = field_type.lower()
+
+    # 根据业务上下文生成相关联的数据
+    if context is None:
+        context = {}
+
     if 'int' in field_type:
         if 'tinyint' in field_type:
+            # 特殊处理业务字段
+            if field_name in ['is_new_customer', 'repurchase_flag', 'has_complaint']:
+                return random.choice([0, 1])
+            elif field_name == 'rating':
+                return random.randint(1, 5)
             return random.randint(0, 127)
         elif 'smallint' in field_type:
             return random.randint(0, 32767)
@@ -168,22 +207,61 @@ def generate_random_value(field_type, field_name):
             max_val = 10 ** (precision - scale) - 1
             return round(random.uniform(0, min(max_val, 100)), scale)
         else:
+            # 特殊处理订单金额，与商品价格相关
+            if field_name == 'order_amount' and 'price' in context:
+                return round(context['price'] * random.uniform(0.8, 1.2), 2)
             return round(random.uniform(0, 100), 2)
     elif 'varchar' in field_type or 'char' in field_type or 'text' in field_type:
         if 'id' in field_name.lower():
             if 'store' in field_name.lower():
-                return f"store_{random.randint(1, 1000):04d}"
+                if store_pool and random.random() < 0.7:  # 70%概率复用已有店铺
+                    return random.choice(store_pool)
+                else:
+                    store_id = f"store_{random.randint(1, 1000):04d}"
+                    store_pool.append(store_id)
+                    return store_id
             elif 'item' in field_name.lower():
-                return f"item_{random.randint(1, 10000):06d}"
+                if item_pool and random.random() < 0.5:  # 50%概率复用已有商品
+                    return random.choice(item_pool)
+                else:
+                    item_id = f"item_{random.randint(1, 10000):06d}"
+                    item_pool.append(item_id)
+                    return item_id
             elif 'product' in field_name.lower():
-                return f"product_{random.randint(1, 100000):08d}"
+                if product_pool and random.random() < 0.5:  # 50%概率复用已有商品
+                    return random.choice(product_pool)
+                else:
+                    product_id = f"product_{random.randint(1, 100000):08d}"
+                    product_pool.append(product_id)
+                    return product_id
+            elif 'user' in field_name.lower():
+                if user_pool and random.random() < 0.6:  # 60%概率复用已有用户
+                    return random.choice(user_pool)
+                else:
+                    user_id = f"user_{random.randint(1, 10000):05d}"
+                    user_pool.append(user_id)
+                    return user_id
+            elif 'order' in field_name.lower():
+                return f"order_{random.randint(1, 999999):08d}"
+            elif 'session' in field_name.lower():
+                return f"session_{random.randint(1, 999999):08d}"
             else:
                 return f"{field_name}_{random.randint(1, 10000)}"
-        elif 'grade' in field_name.lower():
-            grades = ['A', 'B', 'C', 'D']
-            return random.choice(grades)
-        elif 'dt' in field_name.lower() or 'date' in field_name.lower() or 'day' in field_name.lower():
-            return get_random_time().strftime("%Y-%m-%d")
+        elif 'page_type' in field_name.lower():
+            return random.choice(['home', 'item_list', 'item_detail', 'search_result'])
+        elif 'event_type' in field_name.lower():
+            return random.choice(['view', 'search', 'add_to_cart', 'payment', 'payment_success',
+                                  'content_view', 'content_share', 'comment'])
+        elif 'order_status' in field_name.lower():
+            return random.choice(['paid', 'completed', 'returned'])
+        elif 'category_name' in field_name.lower():
+            return context.get('category_name', random.choice(list(CATEGORIES.keys())))
+        elif 'brand' in field_name.lower():
+            return context.get('brand', random.choice(list(BRANDS.get(context.get('category_name', '电子产品'), BRANDS['电子产品']))))
+        elif 'product_name' in field_name.lower():
+            return context.get('product_name', f"Product_{random.randint(1, 9999)}")
+        elif field_name in ['category_id', 'category_name']:
+            return context.get('category_name', random.choice(list(CATEGORIES.keys())))
         else:
             return f"value_{random.randint(1, 100000)}"
     elif 'datetime' in field_type or 'timestamp' in field_type:
@@ -193,8 +271,7 @@ def generate_random_value(field_type, field_name):
     else:
         return f"default_{random.randint(1, 1000)}"
 
-
-# 动态创建表（保持不变）
+# 动态创建表
 def create_table_if_not_exists(create_sql):
     connection = get_db_connection()
     try:
@@ -213,27 +290,153 @@ def create_table_if_not_exists(create_sql):
     finally:
         connection.close()
 
+# 生成商品信息数据
+def generate_product_info_data(fields, count):
+    data = []
+    non_auto_fields = [f for f in fields if not f['is_auto_increment']]
 
-# 动态生成并插入数据（核心优化：基于自增标记过滤id）
+    for i in range(count):
+        record_data = []
+        # 生成商品相关信息上下文
+        category_name, sub_category, brand, product_name, price = generate_product_info()
+        context = {
+            'category_name': category_name,
+            'sub_category': sub_category,
+            'brand': brand,
+            'product_name': product_name,
+            'price': price
+        }
+
+        for field in non_auto_fields:
+            if field['name'] == 'category_name':
+                value = category_name
+            elif field['name'] == 'category_id':
+                value = category_name
+            elif field['name'] == 'brand':
+                value = brand
+            elif field['name'] == 'product_name':
+                value = product_name
+            elif field['name'] == 'price':
+                value = price
+            else:
+                value = generate_random_value(field['type'], field['name'], context)
+            record_data.append(value)
+        data.append(tuple(record_data))
+    return data
+
+# 生成用户行为日志数据
+def generate_user_behavior_data(fields, count):
+    data = []
+    non_auto_fields = [f for f in fields if not f['is_auto_increment']]
+
+    for i in range(count):
+        record_data = []
+        context = {}
+
+        # 为行为日志创建上下文
+        if random.random() < 0.3:  # 30%概率是新用户
+            user_id = f"user_{random.randint(1, 10000):05d}"
+            user_pool.append(user_id)
+            context['is_new_customer'] = 1
+        else:
+            context['is_new_customer'] = 0
+
+        for field in non_auto_fields:
+            if field['name'] == 'is_new_customer':
+                value = context['is_new_customer']
+            elif field['name'] == 'duration':
+                # 停留时长根据页面类型调整
+                page_type = context.get('page_type', '')
+                if page_type in ['item_detail', 'content_view']:
+                    value = random.randint(30, 300)  # 商品详情页停留时间较长
+                else:
+                    value = random.randint(5, 60)   # 其他页面停留时间较短
+            elif field['name'] == 'event_type':
+                value = random.choice(['view', 'search', 'add_to_cart', 'payment', 'payment_success',
+                                       'content_view', 'content_share', 'comment'])
+                context['event_type'] = value
+            elif field['name'] == 'page_type':
+                value = random.choice(['home', 'item_list', 'item_detail', 'search_result'])
+                context['page_type'] = value
+            else:
+                value = generate_random_value(field['type'], field['name'], context)
+
+            # 保存关键字段到上下文
+            if field['name'] in ['user_id', 'item_id', 'store_id']:
+                context[field['name']] = value
+
+            record_data.append(value)
+        data.append(tuple(record_data))
+    return data
+
+# 生成订单信息数据
+def generate_order_info_data(fields, count):
+    data = []
+    non_auto_fields = [f for f in fields if not f['is_auto_increment']]
+
+    for i in range(count):
+        record_data = []
+        context = {}
+
+        for field in non_auto_fields:
+            if field['name'] == 'order_status':
+                value = random.choice(['paid', 'completed', 'returned'])
+                context['order_status'] = value
+            elif field['name'] == 'has_complaint':
+                # 退货订单更可能有投诉
+                if context.get('order_status') == 'returned':
+                    value = random.choice([0, 1]) if random.random() < 0.7 else 1
+                else:
+                    value = random.choice([0, 1]) if random.random() < 0.95 else 1
+            elif field['name'] == 'order_amount':
+                # 订单金额与商品价格相关
+                base_price = random.uniform(10, 1000)
+                context['price'] = base_price
+                value = round(base_price * random.uniform(0.9, 1.1), 2)
+            else:
+                value = generate_random_value(field['type'], field['name'], context)
+
+            # 保存关键字段到上下文
+            if field['name'] in ['user_id', 'item_id', 'store_id']:
+                context[field['name']] = value
+
+            record_data.append(value)
+        data.append(tuple(record_data))
+    return data
+
+# 动态生成并插入数据
 def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, start_id):
     data = []
     # 根据自增标记过滤字段，彻底排除id
     non_auto_fields = [f for f in fields if not f['is_auto_increment']]
     field_names = [field['name'] for field in non_auto_fields]
-    print(f"字段信息: {field_names}")  # 确认输出中无'id'
+    print(f"字段信息: {field_names}")
 
-    for i in range(batch_size):
-        record_data = []
-        for field in non_auto_fields:
-            value = generate_random_value(field['type'], field['name'])
-            record_data.append(value)
-        data.append(tuple(record_data))
+    # 根据表名采用不同的数据生成策略
+    if table_name == 'product_info':
+        data = generate_product_info_data(fields, batch_size)
+    elif table_name == 'user_behavior_log':
+        data = generate_user_behavior_data(fields, batch_size)
+    elif table_name == 'order_info':
+        data = generate_order_info_data(fields, batch_size)
+    else:
+        # 默认数据生成方式
+        for i in range(batch_size):
+            record_data = []
+            context = {}
+            for field in non_auto_fields:
+                value = generate_random_value(field['type'], field['name'], context)
+                record_data.append(value)
+                # 保存关键字段到上下文
+                if field['name'] in ['user_id', 'item_id', 'store_id', 'product_id']:
+                    context[field['name']] = value
+            data.append(tuple(record_data))
 
     # 构造不含id的插入SQL
     placeholders = ', '.join(['%s'] * len(field_names))
     field_names_str = ', '.join([f'`{name}`' for name in field_names])
     insert_sql = f"INSERT INTO `{table_name}` ({field_names_str}) VALUES ({placeholders})"
-    print(f"插入SQL: {insert_sql}")  # 确认SQL中无'id'
+    print(f"插入SQL: {insert_sql}")
 
     # 插入数据库
     connection = get_db_connection()
@@ -249,8 +452,7 @@ def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, st
     finally:
         connection.close()
 
-
-# 显示表数据示例（保持不变）
+# 显示表数据示例
 def show_sample_data(table_name, limit=5):
     connection = get_db_connection()
     try:
@@ -268,8 +470,7 @@ def show_sample_data(table_name, limit=5):
     finally:
         connection.close()
 
-
-# 主函数（保持不变）
+# 主函数
 def main():
     try:
         print(f"开始处理数据库: {MYSQL_DB}")
@@ -301,7 +502,6 @@ def main():
     except Exception as e:
         print(f"执行过程出错：{str(e)}")
         raise
-
 
 if __name__ == "__main__":
     main()
