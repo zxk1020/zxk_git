@@ -6,6 +6,104 @@
 基于电商数仓项目需求，为商家提供商品全维度诊断能力，通过"流量获取、流量转化、内容营销、客户拉新、服务质量"
 五大维度评估商品表现，实现商品分级（A-D级）和单品竞争力诊断功能。
 
+# GD7 ADS层表结构分析
+
+## -- 第一张表
+## -- 1. ads_traffic_metrics_result
+## -- 统计主题：流量获取指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 店铺总点击数、商品访问次数、商品点击率、搜索排名得分、详情页点击率
+## -- 数据来源：从用户行为日志表（dwd_user_behavior_log）聚合处理后生成。
+## -- 底层：ads_traffic_metrics_result
+## -- dwd_user_behavior_log
+## -- ods_user_behavior_log
+
+## -- 第二张表
+## -- 2. ads_conversion_metrics_result
+## -- 统计主题：转化指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 转化率、加购转化率、支付成功率
+## -- 数据来源：从用户行为日志表（dwd_user_behavior_log）聚合处理后生成。
+## -- 底层：ads_conversion_metrics_result
+## -- dwd_user_behavior_log
+## -- ods_user_behavior_log
+
+## -- 第三张表
+## -- 3. ads_content_metrics_result
+## -- 统计主题：内容营销指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 平均内容观看时长、内容分享率、评论互动率
+## -- 数据来源：从用户行为日志表（dwd_user_behavior_log）聚合处理后生成。
+## -- 底层：ads_content_metrics_result
+## -- dwd_user_behavior_log
+## -- ods_user_behavior_log
+
+## -- 第四张表
+## -- 4. ads_acquisition_metrics_result
+## -- 统计主题：客户拉新指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 新客购买占比、新客复购率、获取成本得分
+## -- 数据来源：从用户行为日志表（dwd_user_behavior_log）聚合处理后生成。
+## -- 底层：ads_acquisition_metrics_result
+## -- dwd_user_behavior_log
+## -- ods_user_behavior_log
+
+## -- 第五张表
+## -- 5. ads_service_metrics_result
+## -- 统计主题：服务质量指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 退货率得分、投诉率得分、好评率
+## -- 数据来源：从订单信息表（dwd_order_info）聚合处理后生成。
+## -- 底层：ads_service_metrics_result
+## -- dwd_order_info
+## -- ods_order_info
+
+## -- 第六张表
+## -- 6. ads_comprehensive_score_result
+## -- 统计主题：综合评分指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 流量获取得分、转化得分、内容运营得分、客户获取得分、服务得分、总分、等级
+## -- 数据来源：从流量、转化、内容、拉新、服务五个维度的ADS指标表合并计算生成。
+## -- 底层：ads_comprehensive_score_result
+## -- ads_traffic_metrics_result/ads_conversion_metrics_result/ads_content_metrics_result/ads_acquisition_metrics_result/ads_service_metrics_result
+## -- dwd_user_behavior_log/dwd_order_info
+## -- ods_user_behavior_log/ods_order_info
+
+## -- 第七张表
+## -- 7. ads_competitor_comparison_result
+## -- 统计主题：竞品对比指标结果表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 各维度竞品平均得分、各维度得分差值、总分差值
+## -- 数据来源：从综合评分指标结果表（ads_comprehensive_score_result）使用窗口函数计算竞品平均值后生成。
+## -- 底层：ads_competitor_comparison_result
+## -- ads_comprehensive_score_result
+## -- ads_traffic_metrics_result/ads_conversion_metrics_result/ads_content_metrics_result/ads_acquisition_metrics_result/ads_service_metrics_result
+## -- dwd_user_behavior_log/dwd_order_info
+## -- ods_user_behavior_log/ods_order_info
+
+## -- 第八张表
+## -- 8. ads_product_score_main
+## -- 统计主题：商品评分主表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 流量获取得分、转化得分、内容运营得分、客户获取得分、服务得分、总分、等级
+## -- 数据来源：从商品流量、转化、内容、拉新、服务五个维度的DWS表合并计算生成。
+## -- 底层：ads_product_score_main
+## -- dws_product_traffic_d/dws_product_conversion_d/dws_product_content_d/dws_customer_acquisition_d/dws_product_service_d
+## -- dwd_user_behavior_log/dwd_order_info
+## -- ods_user_behavior_log/ods_order_info
+
+## -- 第九张表
+## -- 9. ads_product_diagnosis_compare
+## -- 统计主题：商品竞品对比表
+## -- 统计内容：按统计日期、店铺ID及商品ID，统计：
+## -- 各维度竞品平均得分、各维度得分差值、总分差值
+## -- 数据来源：从商品评分主表（ads_product_score_main）使用窗口函数计算竞品平均值后生成。
+## -- 底层：ads_product_diagnosis_compare
+## -- ads_product_score_main
+## -- dws_product_traffic_d/dws_product_conversion_d/dws_product_content_d/dws_customer_acquisition_d/dws_product_service_d
+## -- dwd_user_behavior_log/dwd_order_info
+## -- ods_user_behavior_log/ods_order_info
+
 二、ADS层表设计方案
 
 1. 商品评分主表(product_score_main)

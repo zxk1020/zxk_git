@@ -1018,6 +1018,7 @@ def generate_general_value(field, context):
         return f"{pinyin}_{suffix}"
 
 # 智能生成字段值（基于字段语义和上下文）
+# 智能生成字段值（基于字段语义和上下文）
 def generate_smart_value(field, context=None):
     if context is None:
         context = {}
@@ -1054,6 +1055,10 @@ def generate_smart_value(field, context=None):
             return None
         else:
             return random.choice(ORDER_INFO_POOL)['id']
+
+    # 特殊处理age_group字段
+    if field_name == 'age_group':
+        return random.choice(['18-25岁', '26-35岁', '36-45岁', '46-55岁'])
 
     # 如果上下文中已有该字段值，有一定概率复用
     if field_name in context and random.random() < 0.3:
@@ -1117,6 +1122,7 @@ def generate_smart_value(field, context=None):
 
     context[field_name] = value
     return value
+
 
 # 动态创建表
 def create_table_if_not_exists(create_sql):

@@ -1,7 +1,7 @@
-from pyspark.sql import SparkSession 
-import pymysql 
-import logging 
-from typing import Dict, List, Tuple 
+from pyspark.sql import SparkSession
+import pymysql
+import logging
+from typing import Dict, List, Tuple
 
 # 配置日志记录
 logging.basicConfig(
@@ -42,12 +42,20 @@ class HiveToMySQLSync:
         return tables
 
     def get_hive_table_schema(self, table_name: str) -> Tuple[List[Tuple], str]:
-        """获取表结构和注释"""
+        """获取表结构和注释，增加列名去重逻辑"""
         # 获取列信息
         df = self.spark.sql(f"DESCRIBE {self.hive_db}.{table_name}")
         columns = []
+        seen_columns = set()  # 用于跟踪已见过的列名
+
         for row in df.collect():
             if not row.col_name.startswith('#'):  # 跳过分区字段
+                # 跳过重复的列
+                if row.col_name in seen_columns:
+                    logging.warning(f"表 {table_name} 中发现重复列: {row.col_name}，已跳过")
+                    continue
+
+                seen_columns.add(row.col_name)
                 comment = row.comment if hasattr(row, 'comment') else ''
                 columns.append((row.col_name, row.data_type.lower(), comment))
 
@@ -166,7 +174,7 @@ if __name__ == "__main__":
         .config("spark.sql.warehouse.dir", "/user/hive/warehouse") \
         .config("hive.metastore.uris", "thrift://cdh01:9083") \
         .config("spark.hadoop.fs.defaultFS", "hdfs://cdh01:8020") \
-        .config("spark.sql.execution.arrow.enabled", "true") \
+        .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
         .config("spark.sql.parquet.writeLegacyFormat", "true") \
         .enableHiveSupport() \
         .getOrCreate()
@@ -176,9 +184,9 @@ if __name__ == "__main__":
         'port': 3306,
         'user': 'root',
         'password': 'root',
-        'database': 'ads_gd7'
+        'database': 'ads_gd10'
     }
 
-    syncer = HiveToMySQLSync(spark, "gd7", config)
+    syncer = HiveToMySQLSync(spark, "gd10", config)
     syncer.run_sync()
     spark.stop()

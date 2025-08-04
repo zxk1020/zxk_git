@@ -1,0 +1,209 @@
+2025-08-04 09:11:55,020 - INFO - 发现 22 张待同步表
+2025-08-04 09:11:56,134 - ERROR - 同步表 ads_acquisition_metrics_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:11:56,134 - ERROR - 表 ads_acquisition_metrics_result 同步失败，跳过继续处理其他表
+2025-08-04 09:11:56,940 - ERROR - 同步表 ads_competitor_comparison_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:11:56,940 - ERROR - 表 ads_competitor_comparison_result 同步失败，跳过继续处理其他表
+2025-08-04 09:11:57,706 - ERROR - 同步表 ads_comprehensive_score_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:11:57,706 - ERROR - 表 ads_comprehensive_score_result 同步失败，跳过继续处理其他表
+2025-08-04 09:11:58,517 - ERROR - 同步表 ads_content_metrics_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:11:58,519 - ERROR - 表 ads_content_metrics_result 同步失败，跳过继续处理其他表
+2025-08-04 09:11:59,316 - ERROR - 同步表 ads_conversion_metrics_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:11:59,316 - ERROR - 表 ads_conversion_metrics_result 同步失败，跳过继续处理其他表
+2025-08-04 09:12:00,173 - ERROR - 同步表 ads_product_diagnosis_compare 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:00,173 - ERROR - 表 ads_product_diagnosis_compare 同步失败，跳过继续处理其他表
+2025-08-04 09:12:01,179 - ERROR - 同步表 ads_product_score_main 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:01,179 - ERROR - 表 ads_product_score_main 同步失败，跳过继续处理其他表
+2025-08-04 09:12:02,200 - ERROR - 同步表 ads_service_metrics_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:02,200 - ERROR - 表 ads_service_metrics_result 同步失败，跳过继续处理其他表
+2025-08-04 09:12:03,289 - ERROR - 同步表 ads_traffic_metrics_result 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:03,289 - ERROR - 表 ads_traffic_metrics_result 同步失败，跳过继续处理其他表
+2025-08-04 09:12:03,979 - ERROR - 同步表 dim_product 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:03,979 - ERROR - 表 dim_product 同步失败，跳过继续处理其他表
+2025-08-04 09:12:04,845 - ERROR - 同步表 dim_store 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:04,846 - ERROR - 表 dim_store 同步失败，跳过继续处理其他表
+2025-08-04 09:12:05,707 - ERROR - 同步表 dim_user 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:05,707 - ERROR - 表 dim_user 同步失败，跳过继续处理其他表
+2025-08-04 09:12:06,579 - ERROR - 同步表 dwd_order_info 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:06,580 - ERROR - 表 dwd_order_info 同步失败，跳过继续处理其他表
+2025-08-04 09:12:07,984 - ERROR - 同步表 dwd_user_behavior_log 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:07,985 - ERROR - 表 dwd_user_behavior_log 同步失败，跳过继续处理其他表
+2025-08-04 09:12:08,881 - ERROR - 同步表 dws_customer_acquisition_d 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:08,881 - ERROR - 表 dws_customer_acquisition_d 同步失败，跳过继续处理其他表
+2025-08-04 09:12:09,905 - ERROR - 同步表 dws_product_content_d 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:09,905 - ERROR - 表 dws_product_content_d 同步失败，跳过继续处理其他表
+2025-08-04 09:12:10,732 - ERROR - 同步表 dws_product_conversion_d 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:10,732 - ERROR - 表 dws_product_conversion_d 同步失败，跳过继续处理其他表
+2025-08-04 09:12:11,696 - ERROR - 同步表 dws_product_service_d 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:11,696 - ERROR - 表 dws_product_service_d 同步失败，跳过继续处理其他表
+2025-08-04 09:12:12,518 - ERROR - 同步表 dws_product_traffic_d 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:12,518 - ERROR - 表 dws_product_traffic_d 同步失败，跳过继续处理其他表
+2025-08-04 09:12:13,526 - ERROR - 同步表 ods_order_info 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:13,527 - ERROR - 表 ods_order_info 同步失败，跳过继续处理其他表
+2025-08-04 09:12:14,335 - ERROR - 同步表 ods_product_info 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:14,335 - ERROR - 表 ods_product_info 同步失败，跳过继续处理其他表
+2025-08-04 09:12:15,519 - ERROR - 同步表 ods_user_behavior_log 结构失败: (1060, "Duplicate column name 'dt'")
+2025-08-04 09:12:15,519 - ERROR - 表 ods_user_behavior_log 同步失败，跳过继续处理其他表
+2025-08-04 09:12:15,726 - INFO - Closing down clientserver connection
+2025-08-04 09:15:15,669 - INFO - Closing down clientserver connection
+2025-08-04 09:16:06,439 - INFO - 发现 22 张待同步表
+2025-08-04 09:16:07,071 - WARNING - 表 ads_acquisition_metrics_result 中发现重复列: dt，已跳过
+2025-08-04 09:16:07,502 - INFO - 表 ads_acquisition_metrics_result 结构同步成功
+2025-08-04 09:16:22,385 - INFO - 表 ads_acquisition_metrics_result 数据同步完成，记录数: 3000
+2025-08-04 09:16:22,983 - WARNING - 表 ads_competitor_comparison_result 中发现重复列: dt，已跳过
+2025-08-04 09:16:23,363 - INFO - 表 ads_competitor_comparison_result 结构同步成功
+2025-08-04 09:16:36,159 - INFO - 表 ads_competitor_comparison_result 数据同步完成，记录数: 3000
+2025-08-04 09:16:36,680 - WARNING - 表 ads_comprehensive_score_result 中发现重复列: dt，已跳过
+2025-08-04 09:16:36,975 - INFO - 表 ads_comprehensive_score_result 结构同步成功
+2025-08-04 09:16:52,737 - INFO - 表 ads_comprehensive_score_result 数据同步完成，记录数: 3000
+2025-08-04 09:16:53,314 - WARNING - 表 ads_content_metrics_result 中发现重复列: dt，已跳过
+2025-08-04 09:16:53,655 - INFO - 表 ads_content_metrics_result 结构同步成功
+2025-08-04 09:17:06,372 - INFO - 表 ads_content_metrics_result 数据同步完成，记录数: 3000
+2025-08-04 09:17:06,838 - WARNING - 表 ads_conversion_metrics_result 中发现重复列: dt，已跳过
+2025-08-04 09:17:07,275 - INFO - 表 ads_conversion_metrics_result 结构同步成功
+2025-08-04 09:17:19,529 - INFO - 表 ads_conversion_metrics_result 数据同步完成，记录数: 3000
+2025-08-04 09:17:19,994 - WARNING - 表 ads_product_diagnosis_compare 中发现重复列: dt，已跳过
+2025-08-04 09:17:20,359 - INFO - 表 ads_product_diagnosis_compare 结构同步成功
+2025-08-04 09:17:33,216 - INFO - 表 ads_product_diagnosis_compare 数据同步完成，记录数: 3000
+2025-08-04 09:17:33,663 - WARNING - 表 ads_product_score_main 中发现重复列: dt，已跳过
+2025-08-04 09:17:34,094 - INFO - 表 ads_product_score_main 结构同步成功
+2025-08-04 09:17:48,217 - INFO - 表 ads_product_score_main 数据同步完成，记录数: 3000
+2025-08-04 09:17:48,687 - WARNING - 表 ads_service_metrics_result 中发现重复列: dt，已跳过
+2025-08-04 09:17:49,245 - INFO - 表 ads_service_metrics_result 结构同步成功
+2025-08-04 09:18:00,320 - INFO - 表 ads_service_metrics_result 数据同步完成，记录数: 3000
+2025-08-04 09:18:00,821 - WARNING - 表 ads_traffic_metrics_result 中发现重复列: dt，已跳过
+2025-08-04 09:18:01,128 - INFO - 表 ads_traffic_metrics_result 结构同步成功
+2025-08-04 09:18:13,601 - INFO - 表 ads_traffic_metrics_result 数据同步完成，记录数: 3000
+2025-08-04 09:18:13,978 - WARNING - 表 dim_product 中发现重复列: dt，已跳过
+2025-08-04 09:18:14,318 - ERROR - 同步表 dim_product 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:18:14,319 - ERROR - 表 dim_product 同步失败，跳过继续处理其他表
+2025-08-04 09:18:14,938 - WARNING - 表 dim_store 中发现重复列: dt，已跳过
+2025-08-04 09:18:15,265 - ERROR - 同步表 dim_store 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:18:15,265 - ERROR - 表 dim_store 同步失败，跳过继续处理其他表
+2025-08-04 09:18:15,720 - WARNING - 表 dim_user 中发现重复列: dt，已跳过
+2025-08-04 09:18:16,200 - ERROR - 同步表 dim_user 结构失败: (1067, "Invalid default value for 'last_login_time'")
+2025-08-04 09:18:16,201 - ERROR - 表 dim_user 同步失败，跳过继续处理其他表
+2025-08-04 09:18:16,697 - WARNING - 表 dwd_order_info 中发现重复列: dt，已跳过
+2025-08-04 09:18:17,153 - ERROR - 同步表 dwd_order_info 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:18:17,153 - ERROR - 表 dwd_order_info 同步失败，跳过继续处理其他表
+2025-08-04 09:18:17,559 - WARNING - 表 dwd_user_behavior_log 中发现重复列: dt，已跳过
+2025-08-04 09:18:17,888 - ERROR - 同步表 dwd_user_behavior_log 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:18:17,888 - ERROR - 表 dwd_user_behavior_log 同步失败，跳过继续处理其他表
+2025-08-04 09:18:18,384 - WARNING - 表 dws_customer_acquisition_d 中发现重复列: dt，已跳过
+2025-08-04 09:18:19,090 - INFO - 表 dws_customer_acquisition_d 结构同步成功
+2025-08-04 09:18:31,029 - INFO - 表 dws_customer_acquisition_d 数据同步完成，记录数: 3000
+2025-08-04 09:18:31,493 - WARNING - 表 dws_product_content_d 中发现重复列: dt，已跳过
+2025-08-04 09:18:31,836 - INFO - 表 dws_product_content_d 结构同步成功
+2025-08-04 09:18:47,022 - INFO - 表 dws_product_content_d 数据同步完成，记录数: 3000
+2025-08-04 09:18:47,541 - WARNING - 表 dws_product_conversion_d 中发现重复列: dt，已跳过
+2025-08-04 09:18:47,918 - INFO - 表 dws_product_conversion_d 结构同步成功
+2025-08-04 09:18:59,133 - INFO - 表 dws_product_conversion_d 数据同步完成，记录数: 3000
+2025-08-04 09:18:59,507 - WARNING - 表 dws_product_service_d 中发现重复列: dt，已跳过
+2025-08-04 09:18:59,852 - INFO - 表 dws_product_service_d 结构同步成功
+2025-08-04 09:19:11,753 - INFO - 表 dws_product_service_d 数据同步完成，记录数: 3000
+2025-08-04 09:19:12,180 - WARNING - 表 dws_product_traffic_d 中发现重复列: dt，已跳过
+2025-08-04 09:19:12,513 - INFO - 表 dws_product_traffic_d 结构同步成功
+2025-08-04 09:19:23,667 - INFO - 表 dws_product_traffic_d 数据同步完成，记录数: 3000
+2025-08-04 09:19:24,037 - WARNING - 表 ods_order_info 中发现重复列: dt，已跳过
+2025-08-04 09:19:24,357 - ERROR - 同步表 ods_order_info 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:19:24,358 - ERROR - 表 ods_order_info 同步失败，跳过继续处理其他表
+2025-08-04 09:19:24,933 - WARNING - 表 ods_product_info 中发现重复列: dt，已跳过
+2025-08-04 09:19:25,211 - ERROR - 同步表 ods_product_info 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:19:25,211 - ERROR - 表 ods_product_info 同步失败，跳过继续处理其他表
+2025-08-04 09:19:25,654 - WARNING - 表 ods_user_behavior_log 中发现重复列: dt，已跳过
+2025-08-04 09:19:26,173 - ERROR - 同步表 ods_user_behavior_log 结构失败: (1067, "Invalid default value for 'create_time'")
+2025-08-04 09:19:26,173 - ERROR - 表 ods_user_behavior_log 同步失败，跳过继续处理其他表
+2025-08-04 09:19:26,676 - INFO - Closing down clientserver connection
+2025-08-04 09:30:58,386 - INFO - 发现 15 张待同步表
+2025-08-04 09:30:58,934 - WARNING - 表 ads_comprehensive_page_analysis 中发现重复列: dt，已跳过
+2025-08-04 09:30:59,269 - INFO - 表 ads_comprehensive_page_analysis 结构同步成功
+2025-08-04 09:31:17,623 - INFO - 表 ads_comprehensive_page_analysis 数据同步完成，记录数: 2902
+2025-08-04 09:31:18,115 - WARNING - 表 ads_page_click_dashboard 中发现重复列: dt，已跳过
+2025-08-04 09:31:18,404 - INFO - 表 ads_page_click_dashboard 结构同步成功
+2025-08-04 09:31:30,479 - INFO - 表 ads_page_click_dashboard 数据同步完成，记录数: 2902
+2025-08-04 09:31:31,031 - WARNING - 表 ads_page_guidance_dashboard 中发现重复列: dt，已跳过
+2025-08-04 09:31:31,442 - INFO - 表 ads_page_guidance_dashboard 结构同步成功
+2025-08-04 09:31:46,214 - INFO - 表 ads_page_guidance_dashboard 数据同步完成，记录数: 2902
+2025-08-04 09:31:46,784 - WARNING - 表 ads_page_traffic_dashboard 中发现重复列: dt，已跳过
+2025-08-04 09:31:47,231 - INFO - 表 ads_page_traffic_dashboard 结构同步成功
+2025-08-04 09:31:59,330 - INFO - 表 ads_page_traffic_dashboard 数据同步完成，记录数: 2902
+2025-08-04 09:31:59,756 - WARNING - 表 dim_product 中发现重复列: dt，已跳过
+2025-08-04 09:32:00,186 - ERROR - 同步表 dim_product 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:32:00,187 - ERROR - 表 dim_product 同步失败，跳过继续处理其他表
+2025-08-04 09:32:00,626 - WARNING - 表 dim_store 中发现重复列: dt，已跳过
+2025-08-04 09:32:00,936 - ERROR - 同步表 dim_store 结构失败: (1067, "Invalid default value for 'update_time'")
+2025-08-04 09:32:00,936 - ERROR - 表 dim_store 同步失败，跳过继续处理其他表
+2025-08-04 09:32:01,434 - WARNING - 表 dim_user 中发现重复列: dt，已跳过
+2025-08-04 09:32:01,727 - ERROR - 同步表 dim_user 结构失败: (1067, "Invalid default value for 'last_login_time'")
+2025-08-04 09:32:01,727 - ERROR - 表 dim_user 同步失败，跳过继续处理其他表
+2025-08-04 09:32:02,107 - WARNING - 表 dwd_user_behavior_log 中发现重复列: dt，已跳过
+2025-08-04 09:32:02,556 - INFO - 表 dwd_user_behavior_log 结构同步成功
+2025-08-04 09:32:15,021 - INFO - 表 dwd_user_behavior_log 数据同步完成，记录数: 3000
+2025-08-04 09:32:15,540 - WARNING - 表 dws_page_click_distribution_d 中发现重复列: dt，已跳过
+2025-08-04 09:32:15,836 - INFO - 表 dws_page_click_distribution_d 结构同步成功
+2025-08-04 09:32:16,672 - INFO - Error while receiving.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+RuntimeError: reentrant call inside <_io.BufferedReader name=764>
+2025-08-04 09:32:16,673 - INFO - Closing down clientserver connection
+2025-08-04 09:32:16,674 - ERROR - Exception while sending command.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+RuntimeError: reentrant call inside <_io.BufferedReader name=764>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 539, in send_command
+    raise Py4JNetworkError(
+py4j.protocol.Py4JNetworkError: Error while sending or receiving
+2025-08-04 09:32:16,676 - INFO - Error while receiving.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "D:\ANACONDA\envs\offline-pyspark\lib\socket.py", line 717, in readinto
+    return self._sock.recv_into(b)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\context.py", line 381, in signal_handler
+    self.cancelAllJobs()
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\context.py", line 2446, in cancelAllJobs
+    self._jsc.sc().cancelAllJobs()
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\java_gateway.py", line 1322, in __call__
+    return_value = get_return_value(
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\errors\exceptions\captured.py", line 179, in deco
+    return f(*a, **kw)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\protocol.py", line 334, in get_return_value
+    raise Py4JError(
+py4j.protocol.Py4JError: An error occurred while calling o27.sc
+2025-08-04 09:32:16,693 - INFO - Closing down clientserver connection
+2025-08-04 09:32:16,693 - ERROR - Exception while sending command.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+  File "D:\ANACONDA\envs\offline-pyspark\lib\socket.py", line 717, in readinto
+    return self._sock.recv_into(b)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\context.py", line 381, in signal_handler
+    self.cancelAllJobs()
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\context.py", line 2446, in cancelAllJobs
+    self._jsc.sc().cancelAllJobs()
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\java_gateway.py", line 1322, in __call__
+    return_value = get_return_value(
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\pyspark\errors\exceptions\captured.py", line 179, in deco
+    return f(*a, **kw)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\protocol.py", line 334, in get_return_value
+    raise Py4JError(
+py4j.protocol.Py4JError: An error occurred while calling o27.sc
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 539, in send_command
+    raise Py4JNetworkError(
+py4j.protocol.Py4JNetworkError: Error while sending or receiving
+2025-08-04 09:32:16,694 - INFO - Closing down clientserver connection
+2025-08-04 09:32:16,695 - ERROR - 同步表 dws_page_click_distribution_d 数据失败: An error occurred while calling o142.collectToPython
+2025-08-04 09:32:16,696 - ERROR - 表 dws_page_click_distribution_d 同步失败，跳过继续处理其他表

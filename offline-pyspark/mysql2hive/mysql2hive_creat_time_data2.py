@@ -9,8 +9,8 @@ from pyspark.sql.functions import lit
 
 # -------------------------- 配置项（在此处修改库名和连接信息） --------------------------
 # 直接修改以下两个参数即可指定同步的库名
-MYSQL_DB = "gd7"  # MySQL数据库名
-HIVE_DB = "gd7"  # Hive数据库名
+MYSQL_DB = "gd10"  # MySQL数据库名
+HIVE_DB = "gd10"  # Hive数据库名
 
 DEFAULT_MYSQL_CONFIG = {
     "host": "192.168.142.130",
@@ -95,14 +95,14 @@ def get_table_columns(conn, mysql_db, table_name):
     with conn.cursor() as cursor:
         cursor.execute(f"""
             SELECT COLUMN_NAME,
-                   CASE
-                       WHEN DATA_TYPE IN ('varchar','char','text','longtext','mediumtext') THEN 'STRING'
-                       WHEN DATA_TYPE IN ('int','tinyint','smallint') THEN 'INT'
-                       WHEN DATA_TYPE = 'bigint' THEN 'BIGINT'
-                       WHEN DATA_TYPE = 'decimal' THEN CONCAT('DECIMAL(',NUMERIC_PRECISION,',',NUMERIC_SCALE,')')
-                       WHEN DATA_TYPE IN ('datetime','date','timestamp') THEN 'STRING'
-                       ELSE 'STRING'
-                   END AS hive_type,
+                    CASE
+                        WHEN DATA_TYPE IN ('varchar','char','text','longtext','mediumtext') THEN 'STRING'
+                        WHEN DATA_TYPE IN ('int','tinyint','smallint') THEN 'INT'  -- 保持这个映射
+                        WHEN DATA_TYPE = 'bigint' THEN 'BIGINT'
+                        WHEN DATA_TYPE = 'decimal' THEN CONCAT('DECIMAL(',NUMERIC_PRECISION,',',NUMERIC_SCALE,')')
+                        WHEN DATA_TYPE IN ('datetime','date','timestamp') THEN 'STRING'
+                        ELSE 'STRING'
+                    END AS hive_type,
                    COLUMN_COMMENT
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA='{mysql_db}' AND TABLE_NAME='{table_name}'
@@ -134,9 +134,9 @@ def generate_hive_table_ddl(hive_db, table_name, columns, table_comment=""):
         'mediumtext': 'STRING',
         'tinytext': 'STRING',
 
-        # 数值类型
-        'tinyint': 'TINYINT',
-        'smallint': 'SMALLINT',
+        # 数值类型 - 关键修改点：将tinyint映射为INT
+        'tinyint': 'INT',      # 修改这里
+        'smallint': 'INT',     # 修改这里
         'int': 'INT',
         'integer': 'INT',
         'bigint': 'BIGINT',
@@ -146,12 +146,12 @@ def generate_hive_table_ddl(hive_db, table_name, columns, table_comment=""):
 
         # 布尔类型
         'boolean': 'BOOLEAN',
-        'tinyint(1)': 'BOOLEAN',
+        'tinyint(1)': 'BOOLEAN',  # 保留对布尔类型的特殊处理
 
         # 日期时间类型
-        'date': 'DATE',
-        'datetime': 'TIMESTAMP',
-        'timestamp': 'TIMESTAMP',
+        'date': 'STRING',
+        'datetime': 'STRING',      # 修改这里，使用STRING避免时间戳问题
+        'timestamp': 'STRING',     # 修改这里，使用STRING避免时间戳问题
         'time': 'STRING',
         'year': 'INT',
 
@@ -208,6 +208,7 @@ TBLPROPERTIES (
   'serialization.null.format'='NULL'
 )
 """
+
 
 def sync_schema(mysql_db, hive_db, mysql_config, spark):
     """同步表结构到Hive"""
