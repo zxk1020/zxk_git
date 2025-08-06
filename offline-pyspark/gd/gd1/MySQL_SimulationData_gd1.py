@@ -17,52 +17,56 @@ TOTAL_RECORDS = 3000  # 总记录数
 BATCH_SIZE = 1000  # 每批次记录数
 DAY_TIME_RANGE = 2  # 生成天数范围（扩大时间范围以增加真实性）
 
+# 添加用于控制重复数据生成的配置
+REPEAT_PURCHASE_RATIO = 0.3  # 30%的概率生成重复购买记录
+MAX_REPEAT_PURCHASES = 5  # 同一用户对同一商品最多重复购买次数
+
 # ==================== 动态建表语句列表（请在此处传入建表语句）====================
 CREATE_TABLE_SQL_LIST = [
     """
     CREATE TABLE product_view_log (
-`id` BIGINT ,
-`product_id` BIGINT COMMENT '商品ID',
-`user_id` BIGINT COMMENT '用户ID',
-`visit_time` DATETIME COMMENT '访问时间',
-`platform` VARCHAR(20) COMMENT '平台（PC/无线）',
-`session_id` VARCHAR(100) COMMENT '会话ID',
-`create_time` datetime DEFAULT NULL COMMENT '创建时间',
-`operate_time` datetime DEFAULT NULL COMMENT '修改时间'
+  `id` BIGINT COMMENT '日志ID',
+  `product_id` BIGINT COMMENT '商品ID',
+  `user_id` BIGINT COMMENT '用户ID',
+  `visit_time` DATETIME COMMENT '访问时间',
+  `platform` VARCHAR(20) DEFAULT NULL COMMENT '平台（PC/无线）',
+  `session_id` VARCHAR(100) COMMENT '会话ID',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
 ) COMMENT='商品访问日志表';
     """,
     """
     CREATE TABLE product_collect_log (
-`id` BIGINT ,
-`product_id` BIGINT COMMENT '商品ID',
-`user_id` BIGINT COMMENT '用户ID',
-`collect_time` DATETIME COMMENT '收藏时间',
-`create_time` datetime DEFAULT NULL COMMENT '创建时间',
-`operate_time` datetime DEFAULT NULL COMMENT '修改时间'
+  `id` BIGINT COMMENT '日志ID',
+  `product_id` BIGINT COMMENT '商品ID',
+  `user_id` BIGINT COMMENT '用户ID',
+  `collect_time` DATETIME COMMENT '收藏时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
 ) COMMENT='商品收藏日志表';
     """,
     """
     CREATE TABLE product_cart_log (
-`id` BIGINT ,
-`product_id` BIGINT COMMENT '商品ID',
-`user_id` BIGINT COMMENT '用户ID',
-`quantity` INT COMMENT '加购件数',
-`add_time` DATETIME COMMENT '加购时间',
-`create_time` datetime DEFAULT NULL COMMENT '创建时间',
-`operate_time` datetime DEFAULT NULL COMMENT '修改时间'
+  `id` BIGINT COMMENT '日志ID',
+  `product_id` BIGINT COMMENT '商品ID',
+  `user_id` BIGINT COMMENT '用户ID',
+  `quantity` INT COMMENT '加购件数',
+  `add_time` DATETIME COMMENT '加购时间',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
 ) COMMENT='商品加购日志表';
     """,
     """
     CREATE TABLE product_order_log (
-`order_id` BIGINT ,
-`product_id` BIGINT COMMENT '商品ID',
-`user_id` BIGINT COMMENT '用户ID',
-`quantity` INT COMMENT '下单件数',
-`amount` DECIMAL(10,2) COMMENT '下单金额',
-`order_time` DATETIME COMMENT '下单时间',
-`is_paid` VARCHAR(20) COMMENT '是否支付',
-`create_time` datetime DEFAULT NULL COMMENT '创建时间',
-`operate_time` datetime DEFAULT NULL COMMENT '修改时间'
+  `order_id` BIGINT COMMENT '订单ID',
+  `product_id` BIGINT COMMENT '商品ID',
+  `user_id` BIGINT COMMENT '用户ID',
+  `quantity` INT COMMENT '下单件数',
+  `amount` DECIMAL(10,2) COMMENT '下单金额',
+  `order_time` DATETIME COMMENT '下单时间',
+  `is_paid` INT COMMENT '是否支付(0:是 1:否)',
+  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
 ) COMMENT='商品订单日志表';
     """
 ]
@@ -342,8 +346,13 @@ PASSWORD_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 
 # ==================== 通用数据生成规则 ====================
 # 通用字段语义识别规则
+# 修复字段语义识别规则，确保特定字段能正确匹配
 FIELD_SEMANTIC_RULES = [
     # (语义名称, 匹配模式列表)
+    # 特定字段的精确匹配规则，放在最前面确保优先匹配
+    ('platform', [r'^platform$']),
+    ('is_paid', [r'^is_paid$']),
+    # 通用匹配规则
     ('id', [r'(id|_id)$']),
     ('datetime', [r'(time|date|create|modify|update)']),
     ('amount', [r'(amount|price|cost|fee|salary)']),
@@ -381,7 +390,8 @@ VALUE_GENERATION_RULES = {
     'name': lambda field, context: generate_realistic_name(field, context),
     'description': lambda field, context: generate_product_description(field, context),
     'email': lambda field, context: generate_realistic_email(field, context),
-    'phone': lambda field, context: f"1{random.randint(3, 9)}{random.randint(0, 9)}{random.randint(10000000, 99999999)}",
+    'phone': lambda field,
+                    context: f"1{random.randint(3, 9)}{random.randint(0, 9)}{random.randint(10000000, 99999999)}",
     'url': lambda field, context: generate_realistic_image_url(field, context),
     'address': lambda field, context: random.choice(REAL_ADDRESSES),
     'code': lambda field, context: f"CODE{random.randint(10000, 99999)}",
@@ -394,7 +404,10 @@ VALUE_GENERATION_RULES = {
     'level': lambda field, context: random.choice(USER_LEVELS),
     'way': lambda field, context: random.choice(PAYMENT_WAYS),
     'birthday': lambda field, context: generate_birthday_value(field, context),
-    'general': lambda field, context: generate_realistic_general_value(field, context)
+    'general': lambda field, context: generate_realistic_general_value(field, context),
+    # 特定字段生成规则
+    'platform': lambda field, context: random.choice(['PC', '无线']),
+    'is_paid': lambda field, context: random.choice([0, 1])
 }
 
 # 实体池，用于维护数据一致性
@@ -414,6 +427,10 @@ ORDER_INFO_POOL = []
 
 # 已生成的SKU信息，用于订单详情关联
 SKU_INFO_POOL = []
+
+# 用于存储已生成的购买记录，以便生成重复购买
+PURCHASE_HISTORY = defaultdict(list)  # {(user_id, product_id): [order_ids, ...]}
+
 
 # 数据库连接池
 class DatabaseConnectionPool:
@@ -451,9 +468,9 @@ class DatabaseConnectionPool:
         self.connections = []
         self.used_connections = []
 
+
 # 创建全局连接池
 db_pool = DatabaseConnectionPool(MYSQL_CONFIG)
-
 
 
 # ==================== 核心功能代码 ====================
@@ -461,9 +478,11 @@ db_pool = DatabaseConnectionPool(MYSQL_CONFIG)
 def get_db_connection():
     return db_pool.get_connection()
 
+
 # 释放数据库连接
 def release_db_connection(conn):
     db_pool.release_connection(conn)
+
 
 # 生成真实的名称
 def generate_realistic_name(field, context):
@@ -524,16 +543,18 @@ def generate_realistic_name(field, context):
         suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
         return f"{pinyin}_{suffix}"
 
+
 # 生成生日值
 def generate_birthday_value(field, context):
     # 生成合理的生日日期（18-60年前）
-    end_date = datetime.now() - timedelta(days=18*365)
-    start_date = datetime.now() - timedelta(days=60*365)
+    end_date = datetime.now() - timedelta(days=18 * 365)
+    start_date = datetime.now() - timedelta(days=60 * 365)
 
     delta = end_date - start_date
     random_days = random.randint(0, delta.days)
     birthday = start_date + timedelta(days=random_days)
     return birthday.strftime("%Y-%m-%d")
+
 
 # 生成真实的邮箱
 def generate_realistic_email(field, context):
@@ -547,6 +568,7 @@ def generate_realistic_email(field, context):
     number = random.randint(1, 9999)
     domain = random.choice(EMAIL_DOMAINS)
     return f"{pinyin}{number}@{domain}"
+
 
 # 生成状态值
 def generate_status_value(field, context):
@@ -563,6 +585,7 @@ def generate_status_value(field, context):
     # 通用状态
     else:
         return random.choice(['active', 'inactive', 'pending', 'completed', 'cancelled'])
+
 
 # 生成商品描述
 def generate_product_description(field, context):
@@ -588,6 +611,7 @@ def generate_product_description(field, context):
         category = random.choice(list(PRODUCT_CATEGORIES.keys()))
         return random.choice(PRODUCT_CATEGORIES[category]['descriptions'])
 
+
 # 生成真实的图片URL
 def generate_realistic_image_url(field, context):
     domain = random.choice(IMAGE_DOMAINS)
@@ -595,6 +619,7 @@ def generate_realistic_image_url(field, context):
     # 添加随机参数避免重复
     param = random.randint(100000, 999999)
     return f"https://{domain}{path}?v={param}"
+
 
 # 生成真实的密码
 def generate_realistic_password(field, context):
@@ -615,6 +640,7 @@ def generate_realistic_password(field, context):
     # 打乱顺序
     random.shuffle(password)
     return ''.join(password)
+
 
 # 生成真实的通用值
 def generate_realistic_general_value(field, context):
@@ -675,6 +701,7 @@ def generate_realistic_general_value(field, context):
 
     return value
 
+
 # 解析建表语句，提取表名和字段信息
 def parse_create_table_sql(create_sql):
     # 提取表名 - 更健壮的正则表达式
@@ -725,7 +752,8 @@ def parse_create_table_sql(create_sql):
         is_integer = is_integer_field(field_type)
 
         # 排除常见的非字段关键字
-        excluded_keywords = ['PRIMARY', 'KEY', 'INDEX', 'UNIQUE', 'CONSTRAINT', 'REFERENCES', 'ENGINE', 'DEFAULT', 'USING']
+        excluded_keywords = ['PRIMARY', 'KEY', 'INDEX', 'UNIQUE', 'CONSTRAINT', 'REFERENCES', 'ENGINE', 'DEFAULT',
+                             'USING']
         if field_name.upper() not in excluded_keywords:
             field_info.append({
                 'name': field_name,
@@ -744,6 +772,7 @@ def parse_create_table_sql(create_sql):
 
     return table_name, field_info
 
+
 # 判断是否为数字ID字段
 def is_numeric_id_field(field_name, field_type):
     field_name = field_name.lower()
@@ -754,10 +783,12 @@ def is_numeric_id_field(field_name, field_type):
         return True
     return False
 
+
 # 判断是否为整数类型字段
 def is_integer_field(field_type):
     field_type = field_type.lower()
     return 'int' in field_type and 'int' in field_type
+
 
 # 提取字段长度信息
 def extract_field_length(field_type):
@@ -767,6 +798,7 @@ def extract_field_length(field_type):
         return int(length_match.group(1))
     return None
 
+
 # 提取精度信息（用于decimal类型）
 def extract_precision(field_type):
     # 匹配 decimal(m,n) 等精度信息
@@ -774,6 +806,7 @@ def extract_precision(field_type):
     if precision_match:
         return (int(precision_match.group(1)), int(precision_match.group(2)))
     return None
+
 
 # 识别字段语义（用于更智能的数据生成）
 def identify_field_semantic(field_name, field_comment):
@@ -787,6 +820,7 @@ def identify_field_semantic(field_name, field_comment):
                 return semantic
 
     return 'general'
+
 
 # 提取外键关系
 def extract_foreign_keys(create_sql, table_name):
@@ -802,6 +836,7 @@ def extract_foreign_keys(create_sql, table_name):
             'ref_table': ref_table,
             'ref_column': ref_column
         })
+
 
 # 自动推断表间关系
 def infer_table_relationships(table_names_and_fields):
@@ -877,6 +912,7 @@ def infer_table_relationships(table_names_and_fields):
 
     return relationships
 
+
 # 获取随机时间（支持时间上下文）
 def get_random_time(context=None, days_range=None, after_time=None):
     if days_range is None:
@@ -894,26 +930,21 @@ def get_random_time(context=None, days_range=None, after_time=None):
     random_seconds = random.randint(0, int(delta.total_seconds()))
     return start + timedelta(seconds=random_seconds)
 
+
 # 生成ID值
 def generate_id_value(field, context):
     field_name = field['name']
     pool_key = field_name
 
-    # 生成新的ID值
-    if 'activity' in field_name:
-        value = random.randint(100000, 999999)
-    elif 'sku' in field_name:
-        value = random.randint(1000000, 9999999)
+    # 生成新的ID值，范围调整为1-10000
+    if 'product' in field_name or 'item' in field_name:
+        value = random.randint(1, 10000)
     elif 'user' in field_name:
-        value = random.randint(10000, 99999)
-    elif 'store' in field_name:
-        value = random.randint(1000, 9999)
-    elif 'item' in field_name or 'product' in field_name:
-        value = random.randint(100000, 999999)
+        value = random.randint(1, 10000)
     elif 'order' in field_name:
-        value = random.randint(1000000, 9999999)
+        value = random.randint(1, 10000)
     else:
-        value = random.randint(1, 1000000)
+        value = random.randint(1, 10000)
 
     # 添加到实体池
     ENTITY_POOLS[pool_key].append(value)
@@ -922,6 +953,7 @@ def generate_id_value(field, context):
         ENTITY_POOLS[pool_key] = ENTITY_POOLS[pool_key][-1000:]
 
     return value
+
 
 # 生成时间值
 def generate_datetime_value(field, context):
@@ -949,14 +981,19 @@ def generate_datetime_value(field, context):
         create_time = datetime.strptime(create_time_str, "%Y-%m-%d %H:%M:%S")
         refund_time = create_time + timedelta(days=30)
         return refund_time.strftime("%Y-%m-%d %H:%M:%S")
+    elif field_name == 'add_time':
+        # 加购时间应该在合理范围内
+        return get_random_time(context, days_range=30).strftime("%Y-%m-%d %H:%M:%S")
     else:
         return get_random_time(context).strftime("%Y-%m-%d %H:%M:%S")
+
 
 # 生成日期值
 def generate_date_value(field, context):
     # 生成随机日期
     random_time = get_random_time()
     return random_time.strftime("%Y-%m-%d")
+
 
 # 生成通用值
 def generate_general_value(field, context):
@@ -992,6 +1029,8 @@ def generate_general_value(field, context):
         suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
         return f"{pinyin}_{suffix}"
 
+
+# 智能生成字段值（基于字段语义和上下文）
 # 智能生成字段值（基于字段语义和上下文）
 def generate_smart_value(field, context=None):
     if context is None:
@@ -1018,9 +1057,35 @@ def generate_smart_value(field, context=None):
         context['sku_name'] = selected_sku['sku_name']
         return selected_sku['id']
 
-    # 用户与订单关联
-    if field_name == 'user_id' and USER_INFO_POOL:
-        return random.choice(USER_INFO_POOL)['id']
+    # 用户与订单关联 - 支持重复购买
+    if field_name == 'user_id':
+        # 如果已经存在用户ID上下文，有一定概率复用
+        if 'user_id' in context:
+            return context['user_id']
+
+        # 有一定概率选择已存在的用户以生成重复购买
+        if USER_INFO_POOL and random.random() < REPEAT_PURCHASE_RATIO:
+            return random.choice(USER_INFO_POOL)['id']
+        elif USER_INFO_POOL:
+            return random.choice(USER_INFO_POOL)['id']
+        else:
+            # 如果没有用户池，则生成新用户ID
+            return generate_id_value(field, context)
+
+    # 产品ID与订单关联 - 支持重复购买
+    if field_name == 'product_id':
+        # 如果已经存在产品ID上下文，有一定概率复用
+        if 'product_id' in context:
+            return context['product_id']
+
+        # 根据一定概率选择已存在的产品以生成重复购买
+        if random.random() < REPEAT_PURCHASE_RATIO and PURCHASE_HISTORY:
+            # 从已有的购买记录中选择一个用户和商品组合
+            user_product_pair = random.choice(list(PURCHASE_HISTORY.keys()))
+            return user_product_pair[1]  # 返回product_id
+        else:
+            # 生成新的产品ID
+            return random.randint(1, 10000)
 
     # 父订单ID关联
     if field_name == 'parent_order_id' and ORDER_INFO_POOL:
@@ -1033,6 +1098,14 @@ def generate_smart_value(field, context=None):
     # 如果上下文中已有该字段值，有一定概率复用
     if field_name in context and random.random() < 0.3:
         return context[field_name]
+
+    # 特殊处理is_paid字段
+    if field_name == 'is_paid':
+        return random.choice([0, 1])
+
+    # 特殊处理platform字段
+    if field_name == 'platform':
+        return random.choice(['PC', '无线'])
 
     # 根据字段语义生成值
     if field_semantic in VALUE_GENERATION_RULES:
@@ -1048,19 +1121,19 @@ def generate_smart_value(field, context=None):
                 if field.get('is_numeric_id', False):
                     value = generate_id_value(field, context)
                 else:
-                    value = random.randint(1, 10000000)
+                    value = random.randint(1, 10000)
             else:
                 if field.get('is_numeric_id', False):
                     value = generate_id_value(field, context)
                 else:
-                    value = random.randint(1, 100000)
+                    value = random.randint(1, 10000)
 
         elif 'decimal' in field_type or 'float' in field_type or 'double' in field_type:
             precision = field.get('precision')
             if precision:
                 precision_val, scale = precision
                 max_val = 10 ** (precision_val - scale) - 1
-                value = round(random.uniform(0, min(max_val, 100000)), scale)
+                value = round(random.uniform(0, min(max_val, 10000)), scale)
             else:
                 value = round(random.uniform(0, 10000), 2)
 
@@ -1093,6 +1166,7 @@ def generate_smart_value(field, context=None):
     context[field_name] = value
     return value
 
+
 # 动态创建表
 def create_table_if_not_exists(create_sql):
     connection = get_db_connection()
@@ -1112,9 +1186,10 @@ def create_table_if_not_exists(create_sql):
     finally:
         release_db_connection(connection)
 
+
 # 智能生成并插入数据批次
 def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, start_id):
-    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL
+    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL, PURCHASE_HISTORY
 
     data = []
     # 过滤自增字段
@@ -1134,6 +1209,22 @@ def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, st
 
         # 保存关联数据到对应的池中
         record_dict = dict(zip(field_names, record_data))
+
+        # 记录购买历史，用于生成重复购买
+        if table_name == 'product_order_log':
+            user_id = record_dict.get('user_id')
+            product_id = record_dict.get('product_id')
+            order_id = record_dict.get('order_id')
+
+            if user_id and product_id and order_id:
+                # 记录用户对商品的购买
+                PURCHASE_HISTORY[(user_id, product_id)].append(order_id)
+
+                # 限制每个用户对每个商品的购买记录数量
+                if len(PURCHASE_HISTORY[(user_id, product_id)]) > MAX_REPEAT_PURCHASES:
+                    PURCHASE_HISTORY[(user_id, product_id)] = PURCHASE_HISTORY[(user_id, product_id)][
+                                                              -MAX_REPEAT_PURCHASES:]
+
         if table_name == 'spu_info':
             SPU_INFO_POOL.append(record_dict)
             # 限制池大小
@@ -1178,6 +1269,7 @@ def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, st
     finally:
         release_db_connection(connection)
 
+
 # 显示表数据示例
 def show_sample_data(table_name, limit=5):
     connection = get_db_connection()
@@ -1196,21 +1288,25 @@ def show_sample_data(table_name, limit=5):
     finally:
         release_db_connection(connection)
 
+
 # 主函数
 def main():
-    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL
+    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL, PURCHASE_HISTORY
 
     try:
         print(f"开始处理数据库: {MYSQL_DB}")
         print(f"目标总记录数: {TOTAL_RECORDS}")
         print(f"每批次记录数: {BATCH_SIZE}")
         print(f"时间范围: {DAY_TIME_RANGE} 天")
+        print(f"重复购买比例: {REPEAT_PURCHASE_RATIO}")
+        print(f"最大重复购买次数: {MAX_REPEAT_PURCHASES}")
 
         # 清空关联池
         SPU_INFO_POOL.clear()
         USER_INFO_POOL.clear()
         ORDER_INFO_POOL.clear()
         SKU_INFO_POOL.clear()
+        PURCHASE_HISTORY.clear()
 
         # 存储所有表名和字段信息，用于推断关系
         all_tables_info = {}
@@ -1226,7 +1322,8 @@ def main():
                 precision_info = f" (精度: {field['precision']})" if field['precision'] else ""
                 id_type = " (数字ID)" if field.get('is_numeric_id') else ""
                 integer_type = " (整数)" if field.get('is_integer') else ""
-                print(f"  - {field['name']} ({field['type']}) - {field['comment']} (语义: {field['semantic']}){length_info}{precision_info}{id_type}{integer_type}")
+                print(
+                    f"  - {field['name']} ({field['type']}) - {field['comment']} (语义: {field['semantic']}){length_info}{precision_info}{id_type}{integer_type}")
 
             print(f"\n开始创建表 {table_name}...")
             if not create_table_if_not_exists(create_sql):
@@ -1251,6 +1348,8 @@ def main():
         print("实体池统计:")
         for pool_name, pool_data in ENTITY_POOLS.items():
             print(f"  {pool_name}: {len(pool_data)} 个实体")
+
+        print(f"购买历史记录: {len(PURCHASE_HISTORY)} 条")
 
         print("\n表关系映射:")
         # 首先显示从SQL中提取的外键关系
@@ -1278,6 +1377,7 @@ def main():
     finally:
         # 关闭所有数据库连接
         db_pool.close_all()
+
 
 if __name__ == "__main__":
     main()

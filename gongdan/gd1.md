@@ -1,184 +1,193 @@
 -- 商品访问日志表
-CREATE TABLE ods_product_view_log (
+CREATE TABLE product_view_log (
 id BIGINT PRIMARY KEY,
 product_id BIGINT COMMENT '商品ID',
 user_id BIGINT COMMENT '用户ID',
 visit_time DATETIME COMMENT '访问时间',
-platform STRING COMMENT '平台（PC/无线）',
-session_id STRING COMMENT '会话ID'
-) COMMENT '商品访问日志表';
+platform VARCHAR(20) COMMENT '平台（PC/无线）',
+session_id VARCHAR(100) COMMENT '会话ID'
+) COMMENT='商品访问日志表';
 
 -- 商品收藏日志表
-CREATE TABLE ods_product_collect_log (
+CREATE TABLE product_collect_log (
 id BIGINT PRIMARY KEY,
 product_id BIGINT COMMENT '商品ID',
 user_id BIGINT COMMENT '用户ID',
 collect_time DATETIME COMMENT '收藏时间'
-) COMMENT '商品收藏日志表';
+) COMMENT='商品收藏日志表';
 
 -- 商品加购日志表
-CREATE TABLE ods_product_cart_log (
+CREATE TABLE product_cart_log (
 id BIGINT PRIMARY KEY,
 product_id BIGINT COMMENT '商品ID',
 user_id BIGINT COMMENT '用户ID',
 quantity INT COMMENT '加购件数',
 add_time DATETIME COMMENT '加购时间'
-) COMMENT '商品加购日志表';
+) COMMENT='商品加购日志表';
 
 -- 商品订单日志表
-CREATE TABLE ods_product_order_log (
+CREATE TABLE product_order_log (
 order_id BIGINT PRIMARY KEY,
 product_id BIGINT COMMENT '商品ID',
 user_id BIGINT COMMENT '用户ID',
 quantity INT COMMENT '下单件数',
 amount DECIMAL(10,2) COMMENT '下单金额',
 order_time DATETIME COMMENT '下单时间',
-is_paid BOOLEAN COMMENT '是否支付'
-) COMMENT '商品订单日志表';
+is_paid TINYINT(1) COMMENT '是否支付'
+) COMMENT='商品订单日志表';
+
 
 -- 商品维度表
 CREATE TABLE dim_product (
-product_id BIGINT PRIMARY KEY COMMENT '商品ID',
-product_name STRING COMMENT '商品名称',
-category_id BIGINT COMMENT '类目ID',
-price DECIMAL(10,2) COMMENT '商品价格',
-brand STRING COMMENT '品牌',
-create_time DATETIME COMMENT '创建时间',
-update_time DATETIME COMMENT '更新时间'
-) COMMENT '商品维度表';
-
+`product_id` BIGINT COMMENT '商品ID',
+`product_name` VARCHAR(200) COMMENT '商品名称',
+`category_id` BIGINT COMMENT '类目ID',
+`category_name` VARCHAR(100) COMMENT '类目名称',
+`leaf_category_id` BIGINT COMMENT '叶子类目ID',
+`leaf_category_name` VARCHAR(100) COMMENT '叶子类目名称',
+`brand` VARCHAR(100) COMMENT '品牌',
+`price` DECIMAL(10,2) COMMENT '商品价格',
+`create_time` DATETIME COMMENT '创建时间',
+`update_time` DATETIME COMMENT '更新时间'
+) COMMENT='商品维度表';
 
 -- 类目维度表
 CREATE TABLE dim_category (
-category_id BIGINT PRIMARY KEY COMMENT '类目ID',
-category_name STRING COMMENT '类目名称',
-parent_category_id BIGINT COMMENT '父类目ID',
-level INT COMMENT '类目层级',
-is_leaf BOOLEAN COMMENT '是否叶子类目'
-) COMMENT '类目维度表';
-
+`category_id` BIGINT COMMENT '类目ID',
+`category_name` VARCHAR(100) COMMENT '类目名称',
+`parent_category_id` BIGINT COMMENT '父类目ID',
+`level` INT COMMENT '类目层级',
+`is_leaf` TINYINT COMMENT '是否叶子类目(0:否 1:是)'
+) COMMENT='类目维度表';
 
 -- 时间维度表
 CREATE TABLE dim_date (
-date_id DATE PRIMARY KEY COMMENT '日期ID',
-year INT COMMENT '年',
-month INT COMMENT '月',
-day INT COMMENT '日',
-week_of_year INT COMMENT '年内第几周',
-day_of_week INT COMMENT '周内第几天',
-is_weekend BOOLEAN COMMENT '是否周末'
-) COMMENT '时间维度表';
+`date_id` DATE COMMENT '日期ID',
+`year` INT COMMENT '年',
+`month` INT COMMENT '月',
+`day` INT COMMENT '日',
+`week_of_year` INT COMMENT '年内第几周',
+`day_of_week` INT COMMENT '周内第几天',
+`is_weekend` TINYINT COMMENT '是否周末(0:否 1:是)'
+) COMMENT='时间维度表';
+
+-- 用户维度表
+CREATE TABLE dim_user (
+`user_id` BIGINT COMMENT '用户ID',
+`user_name` VARCHAR(100) COMMENT '用户名称',
+`gender` VARCHAR(10) COMMENT '性别',
+`age_group` VARCHAR(20) COMMENT '年龄段',
+`register_time` DATETIME COMMENT '注册时间'
+) COMMENT='用户维度表';
+
 
 
 -- 商品访问事实表
 CREATE TABLE dwd_product_view (
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-visit_date DATE COMMENT '访问日期',
-platform STRING COMMENT '平台（PC/无线）',
-view_count BIGINT COMMENT '浏览次数',
-visitor_count BIGINT COMMENT '访客数'
-) COMMENT '商品访问事实表';
-
-
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`visit_date` DATE COMMENT '访问日期',
+`platform` VARCHAR(20) COMMENT '平台（PC/无线）',
+`view_count` BIGINT COMMENT '浏览量',
+`visitor_count` BIGINT COMMENT '访客数'
+) COMMENT='商品访问事实表';
 
 -- 商品收藏事实表
 CREATE TABLE dwd_product_collect (
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-collect_date DATE COMMENT '收藏日期',
-collector_count BIGINT COMMENT '收藏人数'
-) COMMENT '商品收藏事实表';
-
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`collect_date` DATE COMMENT '收藏日期',
+`collector_count` BIGINT COMMENT '收藏人数'
+) COMMENT='商品收藏事实表';
 
 -- 商品加购事实表
 CREATE TABLE dwd_product_cart (
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-cart_date DATE COMMENT '加购日期',
-cart_quantity BIGINT COMMENT '加购件数',
-cart_user_count BIGINT COMMENT '加购人数'
-) COMMENT '商品加购事实表';
-
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`cart_date` DATE COMMENT '加购日期',
+`cart_quantity` BIGINT COMMENT '加购件数',
+`cart_user_count` BIGINT COMMENT '加购人数'
+) COMMENT='商品加购事实表';
 
 -- 商品订单事实表
 CREATE TABLE dwd_product_order (
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-order_date DATE COMMENT '下单日期',
-quantity BIGINT COMMENT '下单件数',
-amount DECIMAL(10,2) COMMENT '下单金额',
-paid_quantity BIGINT COMMENT '支付件数',
-paid_amount DECIMAL(10,2) COMMENT '支付金额',
-order_user_count BIGINT COMMENT '下单人数',
-paid_user_count BIGINT COMMENT '支付人数'
-) COMMENT '商品订单事实表';
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`order_date` DATE COMMENT '下单日期',
+`quantity` BIGINT COMMENT '下单件数',
+`amount` DECIMAL(10,2) COMMENT '下单金额',
+`paid_quantity` BIGINT COMMENT '支付件数',
+`paid_amount` DECIMAL(10,2) COMMENT '支付金额',
+`order_user_count` BIGINT COMMENT '下单买家数',
+`paid_user_count` BIGINT COMMENT '支付买家数'
+) COMMENT='商品订单事实表';
+
 
 
 -- 商品效率汇总表
 CREATE TABLE dws_product_efficiency (
-product_id BIGINT COMMENT '商品ID',
-stat_date DATE COMMENT '统计日期',
-view_count BIGINT COMMENT '浏览量',
-visitor_count BIGINT COMMENT '访客数',
-collect_count BIGINT COMMENT '收藏人数',
-cart_quantity BIGINT COMMENT '加购件数',
-cart_user_count BIGINT COMMENT '加购人数',
-order_quantity BIGINT COMMENT '下单件数',
-order_amount DECIMAL(10,2) COMMENT '下单金额',
-order_user_count BIGINT COMMENT '下单人数',
-paid_quantity BIGINT COMMENT '支付件数',
-paid_amount DECIMAL(10,2) COMMENT '支付金额',
-paid_user_count BIGINT COMMENT '支付人数'
-) COMMENT '商品效率汇总表';
+`product_id` BIGINT COMMENT '商品ID',
+`stat_date` DATE COMMENT '统计日期',
+`view_count` BIGINT COMMENT '商品浏览量',
+`visitor_count` BIGINT COMMENT '商品访客数',
+`collect_count` BIGINT COMMENT '商品收藏人数',
+`cart_quantity` BIGINT COMMENT '商品加购件数',
+`cart_user_count` BIGINT COMMENT '商品加购人数',
+`order_quantity` BIGINT COMMENT '下单件数',
+`order_amount` DECIMAL(10,2) COMMENT '下单金额',
+`order_user_count` BIGINT COMMENT '下单买家数',
+`paid_quantity` BIGINT COMMENT '支付件数',
+`paid_amount` DECIMAL(10,2) COMMENT '支付金额',
+`paid_user_count` BIGINT COMMENT '支付买家数'
+) COMMENT='商品效率汇总表';
 
-
--- 商品区间分析汇总表
+-- 商品区间分析表
 CREATE TABLE dws_product_range_analysis (
-category_id BIGINT COMMENT '类目ID',
-price_range STRING COMMENT '价格区间',
-quantity_range STRING COMMENT '支付件数区间',
-amount_range STRING COMMENT '支付金额区间',
-product_count BIGINT COMMENT '商品数',
-paid_amount DECIMAL(10,2) COMMENT '支付金额',
-paid_quantity BIGINT COMMENT '支付件数',
-avg_price DECIMAL(10,2) COMMENT '件单价'
-) COMMENT '商品区间分析汇总表';
+`category_id` BIGINT COMMENT '类目ID',
+`price_range` VARCHAR(50) COMMENT '价格区间',
+`quantity_range` VARCHAR(50) COMMENT '支付件数区间',
+`amount_range` VARCHAR(50) COMMENT '支付金额区间',
+`product_count` BIGINT COMMENT '商品数',
+`paid_amount` DECIMAL(10,2) COMMENT '支付金额',
+`paid_quantity` BIGINT COMMENT '支付件数',
+`avg_price` DECIMAL(10,2) COMMENT '件单价'
+) COMMENT='商品区间分析表';
+
 
 
 -- 商品效率监控表
 CREATE TABLE ads_product_efficiency_monitor (
-stat_date DATE COMMENT '统计日期',
-time_dimension STRING COMMENT '时间维度（日/周/月）',
-view_count BIGINT COMMENT '浏览量',
-visitor_count BIGINT COMMENT '访客数',
-collect_count BIGINT COMMENT '收藏人数',
-cart_quantity BIGINT COMMENT '加购件数',
-cart_user_count BIGINT COMMENT '加购人数',
-order_quantity BIGINT COMMENT '下单件数',
-order_amount DECIMAL(10,2) COMMENT '下单金额',
-order_user_count BIGINT COMMENT '下单人数',
-paid_quantity BIGINT COMMENT '支付件数',
-paid_amount DECIMAL(10,2) COMMENT '支付金额',
-paid_user_count BIGINT COMMENT '支付人数',
-conversion_rate DECIMAL(5,4) COMMENT '支付转化率'
-) COMMENT '商品效率监控表';
+`stat_date` DATE COMMENT '统计日期',
+`time_dimension` VARCHAR(20) COMMENT '时间维度（日/周/月）',
+`view_count` BIGINT COMMENT '商品浏览量',
+`visitor_count` BIGINT COMMENT '商品访客数',
+`collect_count` BIGINT COMMENT '商品收藏人数',
+`cart_quantity` BIGINT COMMENT '商品加购件数',
+`cart_user_count` BIGINT COMMENT '商品加购人数',
+`order_quantity` BIGINT COMMENT '下单件数',
+`order_amount` DECIMAL(10,2) COMMENT '下单金额',
+`order_user_count` BIGINT COMMENT '下单买家数',
+`paid_quantity` BIGINT COMMENT '支付件数',
+`paid_amount` DECIMAL(10,2) COMMENT '支付金额',
+`paid_user_count` BIGINT COMMENT '支付买家数',
+`conversion_rate` DECIMAL(5,4) COMMENT '支付转化率'
+) COMMENT='商品效率监控表';
 
-
--- 商品区间分析表
+-- 商品区间分析结果表
 CREATE TABLE ads_product_range_analysis (
-category_id BIGINT COMMENT '类目ID',
-category_name STRING COMMENT '类目名称',
-stat_date DATE COMMENT '统计日期',
-time_dimension STRING COMMENT '时间维度（日/周/月）',
-range_type STRING COMMENT '区间类型（价格/件数/金额）',
-range_value STRING COMMENT '区间值',
-product_count BIGINT COMMENT '商品数',
-paid_amount DECIMAL(10,2) COMMENT '支付金额',
-paid_quantity BIGINT COMMENT '支付件数',
-avg_price DECIMAL(10,2) COMMENT '件单价',
-sort_metric STRING COMMENT '排序指标'
-) COMMENT '商品区间分析表';
+`category_id` BIGINT COMMENT '类目ID',
+`category_name` VARCHAR(100) COMMENT '类目名称',
+`stat_date` DATE COMMENT '统计日期',
+`time_dimension` VARCHAR(20) COMMENT '时间维度（日/周/月）',
+`range_type` VARCHAR(20) COMMENT '区间类型（价格/件数/金额）',
+`range_value` VARCHAR(50) COMMENT '区间值',
+`product_count` BIGINT COMMENT '商品数',
+`paid_amount` DECIMAL(10,2) COMMENT '支付金额',
+`paid_quantity` BIGINT COMMENT '支付件数',
+`avg_price` DECIMAL(10,2) COMMENT '件单价',
+`sort_metric` VARCHAR(50) COMMENT '排序指标'
+) COMMENT='商品区间分析结果表';
+
 
 
 # 电商数仓项目 - 商品主题宏观监控看板设计文档
