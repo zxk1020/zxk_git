@@ -1,84 +1,209 @@
--- 商品访问日志表
+-- ====================== ODS层表（带外键关联）======================
+
+
+CREATE_TABLE_SQL_LIST = [
+"""
+CREATE TABLE user_info (
+`user_id` BIGINT AUTO_INCREMENT COMMENT '用户ID',
+`user_name` VARCHAR(50) COMMENT '用户姓名',
+`gender` VARCHAR(10) COMMENT '性别',
+`level` VARCHAR(20) COMMENT '用户级别',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`user_id`)
+) COMMENT='用户信息表';
+""",
+"""
+CREATE TABLE product_info (
+`product_id` BIGINT AUTO_INCREMENT COMMENT '商品ID',
+`product_name` VARCHAR(255) COMMENT '商品名称',
+`category_name` VARCHAR(100) COMMENT '商品品类',
+`brand` VARCHAR(100) COMMENT '品牌',
+`price` DECIMAL(10,2) COMMENT '商品价格',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`product_id`)
+) COMMENT='商品信息表';
+""",
+"""
 CREATE TABLE product_view_log (
-id BIGINT PRIMARY KEY,
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-visit_time DATETIME COMMENT '访问时间',
-platform VARCHAR(20) COMMENT '平台（PC/无线）',
-session_id VARCHAR(100) COMMENT '会话ID'
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`visit_time` DATETIME COMMENT '访问时间',
+`platform` VARCHAR(20) DEFAULT NULL COMMENT '平台（PC/无线）',
+`session_id` VARCHAR(100) COMMENT '会话ID',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_view_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_view_user` FOREIGN KEY (`user_id`) REFERENCES  `user_info`  (`user_id`)
+) COMMENT='商品访问日志表';
+""",
+"""
+CREATE TABLE product_collect_log (
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`collect_time` DATETIME COMMENT '收藏时间',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_collect_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_collect_user` FOREIGN KEY (`user_id`) REFERENCES `user_info` (`user_id`)
+) COMMENT='商品收藏日志表';
+""",
+"""
+CREATE TABLE product_cart_log (
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`quantity` INT COMMENT '加购件数',
+`add_time` DATETIME COMMENT '加购时间',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_cart_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_cart_user` FOREIGN KEY (`user_id`) REFERENCES `user_info`  (`user_id`)
+) COMMENT='商品加购日志表';
+""",
+"""
+CREATE TABLE product_order_log (
+`order_id` BIGINT AUTO_INCREMENT COMMENT '订单ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`quantity` INT COMMENT '下单件数',
+`amount` DECIMAL(10,2) COMMENT '下单金额',
+`order_time` DATETIME COMMENT '下单时间',
+`is_paid` INT COMMENT '是否支付(0:是 1:否)',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`order_id`),
+CONSTRAINT `fk_order_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES  `user_info`  (`user_id`)
+) COMMENT='商品订单日志表';
+"""
+]
+
+
+-- 用户信息表（新增）
+CREATE TABLE user_info (
+`user_id` BIGINT AUTO_INCREMENT COMMENT '用户ID',
+`user_name` VARCHAR(50) COMMENT '用户姓名',
+`gender` VARCHAR(10) COMMENT '性别',
+`level` VARCHAR(20) COMMENT '用户级别',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`user_id`)
+) COMMENT='用户信息表';
+
+-- 商品信息表（新增）
+CREATE TABLE product_info (
+`product_id` BIGINT AUTO_INCREMENT COMMENT '商品ID',
+`product_name` VARCHAR(255) COMMENT '商品名称',
+`category_name` VARCHAR(100) COMMENT '商品品类',
+`brand` VARCHAR(100) COMMENT '品牌',
+`price` DECIMAL(10,2) COMMENT '商品价格',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`product_id`)
+) COMMENT='商品信息表';
+
+-- 商品访问日志表（关联用户和商品）
+CREATE TABLE product_view_log (
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`visit_time` DATETIME COMMENT '访问时间',
+`platform` VARCHAR(20) DEFAULT NULL COMMENT '平台（PC/无线）',
+`session_id` VARCHAR(100) COMMENT '会话ID',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_view_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_view_user` FOREIGN KEY (`user_id`) REFERENCES [user_info](file://D:\zg6\zxk_git\offline-pyspark\tms\py_spark\dim.py#L481-L484) (`user_id`)
 ) COMMENT='商品访问日志表';
 
--- 商品收藏日志表
+-- 商品收藏日志表（关联用户和商品）
 CREATE TABLE product_collect_log (
-id BIGINT PRIMARY KEY,
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-collect_time DATETIME COMMENT '收藏时间'
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`collect_time` DATETIME COMMENT '收藏时间',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_collect_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_collect_user` FOREIGN KEY (`user_id`) REFERENCES [user_info](file://D:\zg6\zxk_git\offline-pyspark\tms\py_spark\dim.py#L481-L484) (`user_id`)
 ) COMMENT='商品收藏日志表';
 
--- 商品加购日志表
+-- 商品加购日志表（关联用户和商品）
 CREATE TABLE product_cart_log (
-id BIGINT PRIMARY KEY,
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-quantity INT COMMENT '加购件数',
-add_time DATETIME COMMENT '加购时间'
+`id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`quantity` INT COMMENT '加购件数',
+`add_time` DATETIME COMMENT '加购时间',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`id`),
+CONSTRAINT `fk_cart_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_cart_user` FOREIGN KEY (`user_id`) REFERENCES [user_info](file://D:\zg6\zxk_git\offline-pyspark\tms\py_spark\dim.py#L481-L484) (`user_id`)
 ) COMMENT='商品加购日志表';
 
--- 商品订单日志表
+-- 商品订单日志表（关联用户和商品）
 CREATE TABLE product_order_log (
-order_id BIGINT PRIMARY KEY,
-product_id BIGINT COMMENT '商品ID',
-user_id BIGINT COMMENT '用户ID',
-quantity INT COMMENT '下单件数',
-amount DECIMAL(10,2) COMMENT '下单金额',
-order_time DATETIME COMMENT '下单时间',
-is_paid TINYINT(1) COMMENT '是否支付'
+`order_id` BIGINT AUTO_INCREMENT COMMENT '订单ID',
+`product_id` BIGINT COMMENT '商品ID',
+`user_id` BIGINT COMMENT '用户ID',
+`quantity` INT COMMENT '下单件数',
+`amount` DECIMAL(10,2) COMMENT '下单金额',
+`order_time` DATETIME COMMENT '下单时间',
+`is_paid` INT COMMENT '是否支付(0:是 1:否)',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+PRIMARY KEY (`order_id`),
+CONSTRAINT `fk_order_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES [user_info](file://D:\zg6\zxk_git\offline-pyspark\tms\py_spark\dim.py#L481-L484) (`user_id`)
 ) COMMENT='商品订单日志表';
 
+-- ====================== DIM层表 ======================
 
 -- 商品维度表
 CREATE TABLE dim_product (
 `product_id` BIGINT COMMENT '商品ID',
-`product_name` VARCHAR(200) COMMENT '商品名称',
-`category_id` BIGINT COMMENT '类目ID',
-`category_name` VARCHAR(100) COMMENT '类目名称',
-`leaf_category_id` BIGINT COMMENT '叶子类目ID',
-`leaf_category_name` VARCHAR(100) COMMENT '叶子类目名称',
+`product_name` VARCHAR(255) COMMENT '商品名称',
+`category_name` VARCHAR(100) COMMENT '商品品类',
 `brand` VARCHAR(100) COMMENT '品牌',
-`price` DECIMAL(10,2) COMMENT '商品价格',
-`create_time` DATETIME COMMENT '创建时间',
-`update_time` DATETIME COMMENT '更新时间'
+`description` VARCHAR(500) COMMENT '商品描述',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`update_time` DATETIME DEFAULT NULL COMMENT '更新时间'
 ) COMMENT='商品维度表';
-
--- 类目维度表
-CREATE TABLE dim_category (
-`category_id` BIGINT COMMENT '类目ID',
-`category_name` VARCHAR(100) COMMENT '类目名称',
-`parent_category_id` BIGINT COMMENT '父类目ID',
-`level` INT COMMENT '类目层级',
-`is_leaf` TINYINT COMMENT '是否叶子类目(0:否 1:是)'
-) COMMENT='类目维度表';
-
--- 时间维度表
-CREATE TABLE dim_date (
-`date_id` DATE COMMENT '日期ID',
-`year` INT COMMENT '年',
-`month` INT COMMENT '月',
-`day` INT COMMENT '日',
-`week_of_year` INT COMMENT '年内第几周',
-`day_of_week` INT COMMENT '周内第几天',
-`is_weekend` TINYINT COMMENT '是否周末(0:否 1:是)'
-) COMMENT='时间维度表';
 
 -- 用户维度表
 CREATE TABLE dim_user (
 `user_id` BIGINT COMMENT '用户ID',
-`user_name` VARCHAR(100) COMMENT '用户名称',
+`user_name` VARCHAR(50) COMMENT '用户名称',
 `gender` VARCHAR(10) COMMENT '性别',
-`age_group` VARCHAR(20) COMMENT '年龄段',
-`register_time` DATETIME COMMENT '注册时间'
+`level` VARCHAR(20) COMMENT '用户级别',
+`create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+`update_time` DATETIME DEFAULT NULL COMMENT '更新时间'
 ) COMMENT='用户维度表';
+
+-- 平台维度表
+CREATE TABLE dim_platform (
+`platform_id` INT COMMENT '平台ID',
+`platform_name` VARCHAR(20) COMMENT '平台名称',
+`platform_desc` VARCHAR(100) COMMENT '平台描述'
+) COMMENT='平台维度表';
+
+-- 支付状态维度表
+CREATE TABLE dim_payment_status (
+`status_id` INT COMMENT '支付状态ID',
+`status_name` VARCHAR(20) COMMENT '支付状态名称',
+`status_desc` VARCHAR(100) COMMENT '状态描述'
+) COMMENT='支付状态维度表';
+
 
 
 

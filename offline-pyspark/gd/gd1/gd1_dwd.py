@@ -12,6 +12,8 @@ spark = SparkSession.builder \
     .config("spark.driver.bindAddress", "127.0.0.1") \
     .config("spark.hadoop.fs.defaultFS", "hdfs://cdh01:8020") \
     .config("spark.local.dir", "E:/spark_temp") \
+    .config("spark.sql.parquet.writeLegacyFormat", "true") \
+    .config("spark.sql.parquet.binaryAsString", "true") \
     .enableHiveSupport() \
     .getOrCreate()
 
@@ -69,26 +71,28 @@ TBLPROPERTIES ('parquet.compress' = 'SNAPPY')
 print("读取ODS层商品访问日志数据...")
 ods_view_log = spark.sql("""
     SELECT * FROM ods_product_view_log 
-    WHERE dt = '20250801' 
+    WHERE dt = '20250805' 
     AND product_id IS NOT NULL 
     AND user_id IS NOT NULL
 """)
 
-# 5. 数据处理
+# 5. 数据处理，确保字段类型正确
 print("处理商品访问数据...")
 dwd_product_view = ods_view_log.select(
-    F.col("product_id"),
-    F.col("user_id"),
-    F.date_format(F.col("visit_time"), "yyyy-MM-dd").alias("visit_date"),
-    F.col("platform"),
-    F.lit(1).alias("view_count"),  # 每条记录代表一次访问
-    F.lit(1).alias("visitor_count"),  # 每条记录代表一个访客
-    F.lit("20250801").alias("dt")
+    F.col("product_id").cast("string").alias("product_id"),
+    F.col("user_id").cast("string").alias("user_id"),
+    F.date_format(F.col("visit_time"), "yyyy-MM-dd").cast("string").alias("visit_date"),
+    F.col("platform").cast("string").alias("platform"),
+    F.lit(1).cast("long").alias("view_count"),  # 每条记录代表一次访问
+    F.lit(1).cast("long").alias("visitor_count"),  # 每条记录代表一个访客
+    F.lit("20250805").cast("string").alias("dt")
 )
 
 # 6. 写入数据
 print("写入商品访问事实表数据...")
 dwd_product_view.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/dwd/dwd_product_view")
 
@@ -125,24 +129,26 @@ TBLPROPERTIES ('parquet.compress' = 'SNAPPY')
 print("读取ODS层商品收藏日志数据...")
 ods_collect_log = spark.sql("""
     SELECT * FROM ods_product_collect_log 
-    WHERE dt = '20250801' 
+    WHERE dt = '20250805' 
     AND product_id IS NOT NULL 
     AND user_id IS NOT NULL
 """)
 
-# 5. 数据处理
+# 5. 数据处理，确保字段类型正确
 print("处理商品收藏数据...")
 dwd_product_collect = ods_collect_log.select(
-    F.col("product_id"),
-    F.col("user_id"),
-    F.date_format(F.col("collect_time"), "yyyy-MM-dd").alias("collect_date"),
-    F.lit(1).alias("collector_count"),  # 每条记录代表一个收藏用户
-    F.lit("20250801").alias("dt")
+    F.col("product_id").cast("string").alias("product_id"),
+    F.col("user_id").cast("string").alias("user_id"),
+    F.date_format(F.col("collect_time"), "yyyy-MM-dd").cast("string").alias("collect_date"),
+    F.lit(1).cast("long").alias("collector_count"),  # 每条记录代表一个收藏用户
+    F.lit("20250805").cast("string").alias("dt")
 )
 
 # 6. 写入数据
 print("写入商品收藏事实表数据...")
 dwd_product_collect.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/dwd/dwd_product_collect")
 
@@ -180,25 +186,27 @@ TBLPROPERTIES ('parquet.compress' = 'SNAPPY')
 print("读取ODS层商品加购日志数据...")
 ods_cart_log = spark.sql("""
     SELECT * FROM ods_product_cart_log 
-    WHERE dt = '20250801' 
+    WHERE dt = '20250805' 
     AND product_id IS NOT NULL 
     AND user_id IS NOT NULL
 """)
 
-# 5. 数据处理
+# 5. 数据处理，确保字段类型正确
 print("处理商品加购数据...")
 dwd_product_cart = ods_cart_log.select(
-    F.col("product_id"),
-    F.col("user_id"),
-    F.date_format(F.col("add_time"), "yyyy-MM-dd").alias("cart_date"),
-    F.col("quantity").alias("cart_quantity"),
-    F.lit(1).alias("cart_user_count"),  # 每条记录代表一个加购用户
-    F.lit("20250801").alias("dt")
+    F.col("product_id").cast("string").alias("product_id"),
+    F.col("user_id").cast("string").alias("user_id"),
+    F.date_format(F.col("add_time"), "yyyy-MM-dd").cast("string").alias("cart_date"),
+    F.col("quantity").cast("long").alias("cart_quantity"),
+    F.lit(1).cast("long").alias("cart_user_count"),  # 每条记录代表一个加购用户
+    F.lit("20250805").cast("string").alias("dt")
 )
 
 # 6. 写入数据
 print("写入商品加购事实表数据...")
 dwd_product_cart.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/dwd/dwd_product_cart")
 
@@ -240,30 +248,32 @@ TBLPROPERTIES ('parquet.compress' = 'SNAPPY')
 print("读取ODS层商品订单日志数据...")
 ods_order_log = spark.sql("""
     SELECT * FROM ods_product_order_log 
-    WHERE dt = '20250801' 
+    WHERE dt = '20250805' 
     AND product_id IS NOT NULL 
     AND user_id IS NOT NULL
 """)
 
-# 5. 数据处理
+# 5. 数据处理，确保字段类型正确
 print("处理商品订单数据...")
 dwd_product_order = ods_order_log.select(
-    F.col("product_id"),
-    F.col("user_id"),
-    F.date_format(F.col("order_time"), "yyyy-MM-dd").alias("order_date"),
-    F.col("quantity"),
-    F.col("amount"),
-    # 根据is_paid字段判断是否支付
-    F.when(F.col("is_paid") == 0, F.col("quantity")).otherwise(F.lit(0)).alias("paid_quantity"),
-    F.when(F.col("is_paid") == 0, F.col("amount")).otherwise(F.lit(0.0)).alias("paid_amount"),
-    F.lit(1).alias("order_user_count"),  # 每条记录代表一个下单用户
-    F.when(F.col("is_paid") == 0, F.lit(1)).otherwise(F.lit(0)).alias("paid_user_count"),
-    F.lit("20250801").alias("dt")
+    F.col("product_id").cast("string").alias("product_id"),
+    F.col("user_id").cast("string").alias("user_id"),
+    F.date_format(F.col("order_time"), "yyyy-MM-dd").cast("string").alias("order_date"),
+    F.col("quantity").cast("long").alias("quantity"),
+    F.col("amount").cast("decimal(10,2)").alias("amount"),
+    # 根据is_paid字段判断是否支付 (0:已支付 1:未支付)
+    F.when(F.col("is_paid") == 0, F.col("quantity")).otherwise(F.lit(0)).cast("long").alias("paid_quantity"),
+    F.when(F.col("is_paid") == 0, F.col("amount")).otherwise(F.lit(0.0)).cast("decimal(10,2)").alias("paid_amount"),
+    F.lit(1).cast("long").alias("order_user_count"),  # 每条记录代表一个下单用户
+    F.when(F.col("is_paid") == 0, F.lit(1)).otherwise(F.lit(0)).cast("long").alias("paid_user_count"),
+    F.lit("20250805").cast("string").alias("dt")
 )
 
 # 6. 写入数据
 print("写入商品订单事实表数据...")
 dwd_product_order.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/dwd/dwd_product_order")
 
@@ -275,10 +285,10 @@ print(f"商品订单事实表处理完成，记录数: {dwd_product_order.count(
 # ====================== 数据验证 ======================
 print("验证DWD层数据:")
 try:
-    view_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_view WHERE dt = '20250801'").collect()[0]['count']
-    collect_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_collect WHERE dt = '20250801'").collect()[0]['count']
-    cart_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_cart WHERE dt = '20250801'").collect()[0]['count']
-    order_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_order WHERE dt = '20250801'").collect()[0]['count']
+    view_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_view WHERE dt = '20250805'").collect()[0]['count']
+    collect_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_collect WHERE dt = '20250805'").collect()[0]['count']
+    cart_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_cart WHERE dt = '20250805'").collect()[0]['count']
+    order_count = spark.sql("SELECT COUNT(*) as count FROM dwd_product_order WHERE dt = '20250805'").collect()[0]['count']
     print(f"商品访问事实表记录数: {view_count}")
     print(f"商品收藏事实表记录数: {collect_count}")
     print(f"商品加购事实表记录数: {cart_count}")
@@ -286,16 +296,16 @@ try:
 
     # 展示部分数据样本
     print("商品访问事实表样本数据:")
-    spark.sql("SELECT * FROM dwd_product_view WHERE dt = '20250801' LIMIT 5").show(truncate=False)
+    spark.sql("SELECT * FROM dwd_product_view WHERE dt = '20250805' LIMIT 5").show(truncate=False)
 
     print("商品收藏事实表样本数据:")
-    spark.sql("SELECT * FROM dwd_product_collect WHERE dt = '20250801' LIMIT 5").show(truncate=False)
+    spark.sql("SELECT * FROM dwd_product_collect WHERE dt = '20250805' LIMIT 5").show(truncate=False)
 
     print("商品加购事实表样本数据:")
-    spark.sql("SELECT * FROM dwd_product_cart WHERE dt = '20250801' LIMIT 5").show(truncate=False)
+    spark.sql("SELECT * FROM dwd_product_cart WHERE dt = '20250805' LIMIT 5").show(truncate=False)
 
     print("商品订单事实表样本数据:")
-    spark.sql("SELECT * FROM dwd_product_order WHERE dt = '20250801' LIMIT 5").show(truncate=False)
+    spark.sql("SELECT * FROM dwd_product_order WHERE dt = '20250805' LIMIT 5").show(truncate=False)
 
 except Exception as e:
     print(f"验证DWD层数据时出错: {e}")

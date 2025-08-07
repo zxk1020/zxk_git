@@ -13,6 +13,8 @@ spark = SparkSession.builder \
     .config("spark.driver.bindAddress", "127.0.0.1") \
     .config("spark.hadoop.fs.defaultFS", "hdfs://cdh01:8020") \
     .config("spark.local.dir", "E:/spark_temp") \
+    .config("spark.sql.parquet.writeLegacyFormat", "true") \
+    .config("spark.sql.parquet.binaryAsString", "true") \
     .enableHiveSupport() \
     .getOrCreate()
 
@@ -23,7 +25,7 @@ spark.sparkContext.setLogLevel("WARN")
 spark.sql("USE gd1")
 
 # 设置分区日期
-dt = '20250801'
+dt = '20250805'
 
 print(f"开始处理GD1 ADS层数据，日期分区: {dt}")
 
@@ -109,26 +111,27 @@ print("处理商品效率监控表数据...")
 # 读取DWS层数据
 dws_efficiency = spark.sql(f"SELECT * FROM dws_product_efficiency WHERE dt = '{dt}'")
 
-# 聚合所有商品数据生成监控指标
+# 聚合所有商品数据生成监控指标，确保字段类型正确
 ads_product_efficiency_monitor = dws_efficiency.agg(
-    F.lit("2025-08-01").alias("stat_date"),
-    F.lit("日").alias("time_dimension"),
-    F.sum("view_count").alias("view_count"),
-    F.sum("visitor_count").alias("visitor_count"),
-    F.sum("collect_count").alias("collect_count"),
-    F.sum("cart_quantity").alias("cart_quantity"),
-    F.sum("cart_user_count").alias("cart_user_count"),
-    F.sum("order_quantity").alias("order_quantity"),
-    F.sum("order_amount").alias("order_amount"),
-    F.sum("order_user_count").alias("order_user_count"),
-    F.sum("paid_quantity").alias("paid_quantity"),
-    F.sum("paid_amount").alias("paid_amount"),
-    F.sum("paid_user_count").alias("paid_user_count"),
+    F.lit("2025-08-01").cast("string").alias("stat_date"),
+    F.lit("日").cast("string").alias("time_dimension"),
+    F.sum("view_count").cast("long").alias("view_count"),
+    F.sum("visitor_count").cast("long").alias("visitor_count"),
+    F.sum("collect_count").cast("long").alias("collect_count"),
+    F.sum("cart_quantity").cast("long").alias("cart_quantity"),
+    F.sum("cart_user_count").cast("long").alias("cart_user_count"),
+    F.sum("order_quantity").cast("long").alias("order_quantity"),
+    F.sum("order_amount").cast("decimal(10,2)").alias("order_amount"),
+    F.sum("order_user_count").cast("long").alias("order_user_count"),
+    F.sum("paid_quantity").cast("long").alias("paid_quantity"),
+    F.sum("paid_amount").cast("decimal(10,2)").alias("paid_amount"),
+    F.sum("paid_user_count").cast("long").alias("paid_user_count"),
     F.when(F.sum("visitor_count") > 0,
            F.round(F.sum("paid_user_count").cast(T.DoubleType()) / F.sum("visitor_count").cast(T.DoubleType()), 4))
     .otherwise(F.lit(0.0))
+    .cast("decimal(5,4)")
     .alias("conversion_rate"),
-    F.lit(dt).alias("dt")
+    F.lit(dt).cast("string").alias("dt")
 )
 
 # 验证数据量
@@ -140,6 +143,8 @@ ads_product_efficiency_monitor.show()
 
 # 写入数据
 ads_product_efficiency_monitor.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/ads/ads_product_efficiency_monitor")
 
@@ -157,7 +162,6 @@ spark.sql("DROP TABLE IF EXISTS ads_product_range_analysis")
 spark.sql("""
 CREATE EXTERNAL TABLE ads_product_range_analysis
 (
-    `category_id`     STRING COMMENT '类目ID',
     `category_name`   STRING COMMENT '类目名称',
     `stat_date`       STRING COMMENT '统计日期',
     `time_dimension`  STRING COMMENT '时间维度（日/月/年）',
@@ -181,53 +185,47 @@ print("处理商品范围分析表数据...")
 # 读取DWS层范围分析数据
 dws_range_analysis = spark.sql(f"SELECT * FROM dws_product_range_analysis WHERE dt = '{dt}'")
 
-# 关联类目维度表获取类目名称
-category_dim = spark.sql("SELECT category_id, category_name FROM dim_category WHERE dt = '20250801' AND is_leaf = 1")
-
 # 处理价格范围数据
 price_range_data = dws_range_analysis.select(
-    F.col("category_id"),
-    F.col("price_range").alias("range_value"),
-    F.col("product_count"),
-    F.col("paid_amount"),
-    F.col("paid_quantity"),
-    F.col("avg_price"),
-    F.lit("价格").alias("range_type")
+    F.col("category_name"),
+    F.col("price_range").cast("string").alias("range_value"),
+    F.col("product_count").cast("long"),
+    F.col("paid_amount").cast("decimal(10,2)"),
+    F.col("paid_quantity").cast("long"),
+    F.col("avg_price").cast("decimal(10,2)"),
+    F.lit("价格").cast("string").alias("range_type")
 )
 
 # 处理件数范围数据
 quantity_range_data = dws_range_analysis.select(
-    F.col("category_id"),
-    F.col("quantity_range").alias("range_value"),
-    F.col("product_count"),
-    F.col("paid_amount"),
-    F.col("paid_quantity"),
-    F.col("avg_price"),
-    F.lit("件数").alias("range_type")
+    F.col("category_name"),
+    F.col("quantity_range").cast("string").alias("range_value"),
+    F.col("product_count").cast("long"),
+    F.col("paid_amount").cast("decimal(10,2)"),
+    F.col("paid_quantity").cast("long"),
+    F.col("avg_price").cast("decimal(10,2)"),
+    F.lit("件数").cast("string").alias("range_type")
 )
 
 # 处理金额范围数据
 amount_range_data = dws_range_analysis.select(
-    F.col("category_id"),
-    F.col("amount_range").alias("range_value"),
-    F.col("product_count"),
-    F.col("paid_amount"),
-    F.col("paid_quantity"),
-    F.col("avg_price"),
-    F.lit("金额").alias("range_type")
+    F.col("category_name"),
+    F.col("amount_range").cast("string").alias("range_value"),
+    F.col("product_count").cast("long"),
+    F.col("paid_amount").cast("decimal(10,2)"),
+    F.col("paid_quantity").cast("long"),
+    F.col("avg_price").cast("decimal(10,2)"),
+    F.lit("金额").cast("string").alias("range_type")
 )
 
 # 合并所有范围数据
 combined_range_data = price_range_data.union(quantity_range_data).union(amount_range_data)
 
-# 关联类目名称
-ads_product_range_analysis = combined_range_data.join(
-    category_dim, "category_id", "left"
-).select(
-    F.col("category_id"),
-    F.coalesce(F.col("category_name"), F.col("category_id")).alias("category_name"),
-    F.lit("2025-08-01").alias("stat_date"),
-    F.lit("日").alias("time_dimension"),
+# 生成ADS层范围分析数据
+ads_product_range_analysis = combined_range_data.select(
+    F.col("category_name"),
+    F.lit("2025-08-01").cast("string").alias("stat_date"),
+    F.lit("日").cast("string").alias("time_dimension"),
     F.col("range_type"),
     F.col("range_value"),
     F.col("product_count"),
@@ -238,7 +236,7 @@ ads_product_range_analysis = combined_range_data.join(
     .when(F.col("range_type") == "件数", F.col("paid_quantity").cast(T.StringType()))
     .otherwise(F.col("paid_amount").cast(T.StringType()))
     .alias("sort_metric"),
-    F.lit(dt).alias("dt")
+    F.lit(dt).cast("string").alias("dt")
 )
 
 # 验证数据量
@@ -250,6 +248,8 @@ ads_product_range_analysis.show(5)
 
 # 写入数据
 ads_product_range_analysis.write.mode("overwrite") \
+    .option("parquet.writelegacyformat", "true") \
+    .option("parquet.binaryAsString", "true") \
     .partitionBy("dt") \
     .parquet("/warehouse/gd1/ads/ads_product_range_analysis")
 

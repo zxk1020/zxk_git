@@ -24,50 +24,85 @@ MAX_REPEAT_PURCHASES = 5  # 同一用户对同一商品最多重复购买次数
 # ==================== 动态建表语句列表（请在此处传入建表语句）====================
 CREATE_TABLE_SQL_LIST = [
     """
+    CREATE TABLE user_info (
+    `user_id` BIGINT AUTO_INCREMENT COMMENT '用户ID',
+    `user_name` VARCHAR(50) COMMENT '用户姓名',
+    `gender` VARCHAR(10) COMMENT '性别',
+    `level` VARCHAR(20) COMMENT '用户级别',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`user_id`)
+    ) COMMENT='用户信息表';
+    """,
+    """
+    CREATE TABLE product_info (
+    `product_id` BIGINT AUTO_INCREMENT COMMENT '商品ID',
+    `product_name` VARCHAR(255) COMMENT '商品名称',
+    `category_name` VARCHAR(100) COMMENT '商品品类',
+    `brand` VARCHAR(100) COMMENT '品牌',
+    `price` DECIMAL(10,2) COMMENT '商品价格',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`product_id`)
+    ) COMMENT='商品信息表';
+    """,
+    """
     CREATE TABLE product_view_log (
-  `id` BIGINT COMMENT '日志ID',
-  `product_id` BIGINT COMMENT '商品ID',
-  `user_id` BIGINT COMMENT '用户ID',
-  `visit_time` DATETIME COMMENT '访问时间',
-  `platform` VARCHAR(20) DEFAULT NULL COMMENT '平台（PC/无线）',
-  `session_id` VARCHAR(100) COMMENT '会话ID',
-  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
-) COMMENT='商品访问日志表';
+    `id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+    `product_id` BIGINT COMMENT '商品ID',
+    `user_id` BIGINT COMMENT '用户ID',
+    `visit_time` DATETIME COMMENT '访问时间',
+    `platform` VARCHAR(20) DEFAULT NULL COMMENT '平台（PC/无线）',
+    `session_id` VARCHAR(100) COMMENT '会话ID',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_view_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+    CONSTRAINT `fk_view_user` FOREIGN KEY (`user_id`) REFERENCES  `user_info`  (`user_id`)
+    ) COMMENT='商品访问日志表';
     """,
     """
     CREATE TABLE product_collect_log (
-  `id` BIGINT COMMENT '日志ID',
-  `product_id` BIGINT COMMENT '商品ID',
-  `user_id` BIGINT COMMENT '用户ID',
-  `collect_time` DATETIME COMMENT '收藏时间',
-  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
-) COMMENT='商品收藏日志表';
+    `id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+    `product_id` BIGINT COMMENT '商品ID',
+    `user_id` BIGINT COMMENT '用户ID',
+    `collect_time` DATETIME COMMENT '收藏时间',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_collect_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+    CONSTRAINT `fk_collect_user` FOREIGN KEY (`user_id`) REFERENCES `user_info` (`user_id`)
+    ) COMMENT='商品收藏日志表';
     """,
     """
     CREATE TABLE product_cart_log (
-  `id` BIGINT COMMENT '日志ID',
-  `product_id` BIGINT COMMENT '商品ID',
-  `user_id` BIGINT COMMENT '用户ID',
-  `quantity` INT COMMENT '加购件数',
-  `add_time` DATETIME COMMENT '加购时间',
-  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
-) COMMENT='商品加购日志表';
+    `id` BIGINT AUTO_INCREMENT COMMENT '日志ID',
+    `product_id` BIGINT COMMENT '商品ID',
+    `user_id` BIGINT COMMENT '用户ID',
+    `quantity` INT COMMENT '加购件数',
+    `add_time` DATETIME COMMENT '加购时间',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_cart_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+    CONSTRAINT `fk_cart_user` FOREIGN KEY (`user_id`) REFERENCES `user_info`  (`user_id`)
+    ) COMMENT='商品加购日志表';
     """,
     """
     CREATE TABLE product_order_log (
-  `order_id` BIGINT COMMENT '订单ID',
-  `product_id` BIGINT COMMENT '商品ID',
-  `user_id` BIGINT COMMENT '用户ID',
-  `quantity` INT COMMENT '下单件数',
-  `amount` DECIMAL(10,2) COMMENT '下单金额',
-  `order_time` DATETIME COMMENT '下单时间',
-  `is_paid` INT COMMENT '是否支付(0:是 1:否)',
-  `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间'
-) COMMENT='商品订单日志表';
+    `order_id` BIGINT AUTO_INCREMENT COMMENT '订单ID',
+    `product_id` BIGINT COMMENT '商品ID',
+    `user_id` BIGINT COMMENT '用户ID',
+    `quantity` INT COMMENT '下单件数',
+    `amount` DECIMAL(10,2) COMMENT '下单金额',
+    `order_time` DATETIME COMMENT '下单时间',
+    `is_paid` INT COMMENT '是否支付(0:是 1:否)',
+    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
+    `operate_time` DATETIME DEFAULT NULL COMMENT '修改时间',
+    PRIMARY KEY (`order_id`),
+    CONSTRAINT `fk_order_product` FOREIGN KEY (`product_id`) REFERENCES `product_info` (`product_id`),
+    CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES  `user_info`  (`user_id`)
+    ) COMMENT='商品订单日志表';
     """
 ]
 
@@ -83,17 +118,25 @@ MYSQL_CONFIG = {
 }
 
 # ==================== 真实数据模板 ====================
-# 真实的用户名模板（中文名）
-REAL_USER_NAMES = [
-    '张伟', '王伟', '王芳', '李伟', '李娜', '张敏', '李静', '王静', '刘伟', '王秀英',
-    '张丽', '李秀英', '王丽', '张静', '李军', '王强', '张军', '李娟', '王军', '张勇',
-    '李勇', '王艳', '李艳', '张艳', '王磊', '李磊', '张磊', '王琴', '李琴', '张琴',
-    '刘洋', '杨欢', '陈晨', '赵磊', '孙涛', '周杰', '吴倩', '郑凯', '冯超', '蒋琳',
-    '朱勇', '林霞', '徐丽', '高磊', '马超', '郭敏', '罗强', '梁军', '彭艳', '卢芳',
-    '丁娜', '程刚', '袁芳', '唐宇', '邓丽', '许磊', '韩静', '冯丽', '曹强', '彭杰',
-    '苏勇', '吕涛', '田军', '江霞', '汪艳', '龚伟', '万丽', '段超', '雷芳', '侯杰',
-    '龙军', '白静', '史强', '陶艳', '黎勇', '贺霞', '顾磊', '孟军', '薛芳', '郝杰'
-]
+# 真实的用户名模板（中文名）和性别映射
+USER_NAME_GENDER_MAP = {
+    '张伟': 'M', '王伟': 'M', '王芳': 'F', '李伟': 'M', '李娜': 'F',
+    '张敏': 'F', '李静': 'F', '王静': 'F', '刘伟': 'M', '王秀英': 'F',
+    '张丽': 'F', '李秀英': 'F', '王丽': 'F', '张静': 'F', '李军': 'M',
+    '王强': 'M', '张军': 'M', '李娟': 'F', '王军': 'M', '张勇': 'M',
+    '李勇': 'M', '王艳': 'F', '李艳': 'F', '张艳': 'F', '王磊': 'M',
+    '李磊': 'M', '张磊': 'M', '王琴': 'F', '李琴': 'F', '张琴': 'F',
+    '刘洋': 'M', '杨欢': 'F', '陈晨': 'M', '赵磊': 'M', '孙涛': 'M',
+    '周杰': 'M', '吴倩': 'F', '郑凯': 'M', '冯超': 'M', '蒋琳': 'F',
+    '朱勇': 'M', '林霞': 'F', '徐丽': 'F', '高磊': 'M', '马超': 'M',
+    '郭敏': 'F', '罗强': 'M', '梁军': 'M', '彭艳': 'F', '卢芳': 'F',
+    '丁娜': 'F', '程刚': 'M', '袁芳': 'F', '唐宇': 'M', '邓丽': 'F',
+    '许磊': 'M', '韩静': 'F', '冯丽': 'F', '曹强': 'M', '彭杰': 'M',
+    '苏勇': 'M', '吕涛': 'M', '田军': 'M', '江霞': 'F', '汪艳': 'F',
+    '龚伟': 'M', '万丽': 'F', '段超': 'M', '雷芳': 'F', '侯杰': 'M',
+    '龙军': 'M', '白静': 'F', '史强': 'M', '陶艳': 'F', '黎勇': 'M',
+    '贺霞': 'F', '顾磊': 'M', '孟军': 'M', '薛芳': 'F', '郝杰': 'M'
+}
 
 # 用户名拼音映射
 USER_NAME_PINYIN = {
@@ -125,7 +168,7 @@ ENGLISH_USER_NAMES = [
     'yvonne', 'zane', 'aaron', 'brian', 'cathy', 'derek', 'elaine', 'felix', 'gina', 'howard'
 ]
 
-# 真实的商品品类和详细信息
+# 真实的商品品类和详细信息，以及品类对应的品牌
 PRODUCT_CATEGORIES = {
     '手机数码': {
         'products': [
@@ -135,6 +178,7 @@ PRODUCT_CATEGORIES = {
             '索尼Xperia 1 VI', 'Google Pixel 8 Pro', 'Nothing Phone (2)', '传音Infinix GT 10 Pro',
             '中兴Axon 60 Ultra'
         ],
+        'brands': ['苹果', '三星', '华为', '小米', 'OPPO', 'vivo', '荣耀', '一加', '魅族', '努比亚', 'realme', 'iQOO', '红米', '真我', '摩托罗拉', '索尼', 'Google', 'Nothing', '传音', '中兴'],
         'descriptions': [
             '全新未拆封，品质保证', '官方正品，支持七天无理由退换', '高端配置，性能强劲',
             '拍照神器，颜值担当', '旗舰级处理器，运行流畅', '超清摄像系统，捕捉精彩瞬间',
@@ -150,6 +194,7 @@ PRODUCT_CATEGORIES = {
             '苹果MacBook Air', '戴尔Inspiron 14', '华硕VivoBook 15', '联想小新Pro',
             '宏碁掠夺者战斧', '惠普暗影精灵9'
         ],
+        'brands': ['苹果', '戴尔', '华为', '联想', '微软', '华硕', '惠普', '小米', '荣耀', '机械革命', '神舟', '微星', 'ROG', '外星人', '宏碁'],
         'descriptions': [
             '专业级品质，值得信赖', '高端配置，性能强劲', '轻薄便携，办公利器',
             '商务必备，彰显品味', '高清显示屏，视觉体验佳', '强劲处理器，多任务处理',
@@ -164,6 +209,7 @@ PRODUCT_CATEGORIES = {
             '方太燃气灶', '小米扫地机器人', '科沃斯擦窗宝', '奥克斯加湿器', '艾美特取暖器',
             '先锋电风扇', '志高除湿机', 'TCL电视65寸', '海信激光电视', '创维电视55寸'
         ],
+        'brands': ['美的', '格力', '海尔', '西门子', '戴森', '松下', '飞利浦', '九阳', '苏泊尔', '老板', '方太', '小米', '科沃斯', '奥克斯', '艾美特', '先锋', '志高', 'TCL', '海信', '创维'],
         'descriptions': [
             '节能环保，绿色生活', '智能科技，便捷生活', '静音运行，舒适体验',
             '大容量存储，保鲜效果好', '高效清洁，省时省力', '人性化设计，操作简单',
@@ -179,6 +225,7 @@ PRODUCT_CATEGORIES = {
             '匹克运动背包', '乔丹运动帽', '鸿星尔克运动袜', '贵人鸟运动手套',
             '德尔惠运动护腕', '回力帆布鞋', '飞跃小白鞋'
         ],
+        'brands': ['Nike', 'Adidas', 'New Balance', '优衣库', 'ZARA', 'H&M', '太平鸟', '森马', '海澜之家', '李宁', '安踏', '特步', '361°', '匹克', '乔丹', '鸿星尔克', '贵人鸟', '德尔惠', '回力', '飞跃'],
         'descriptions': [
             '明星同款，时尚潮流', '经典款式，永不过时', '舒适透气，运动必备',
             '保暖舒适，秋冬必备', '版型修身，展现魅力', '面料优质，穿着舒适',
@@ -194,6 +241,7 @@ PRODUCT_CATEGORIES = {
             'Under Armour运动袜', '斯伯丁篮球', '威尔胜网球拍', '尤尼克斯羽毛球拍',
             '红双喜乒乓球拍', '李宁跳绳'
         ],
+        'brands': ['迪卡侬', '探路者', '牧高笛', '挪客', '凯乐石', '奥索卡', '土拨鼠', '哥伦比亚', '始祖鸟', '北面', '萨洛蒙', '阿迪达斯', '耐克', '安德玛', 'Under Armour', '斯伯丁', '威尔胜', '尤尼克斯', '红双喜', '李宁'],
         'descriptions': [
             '专业运动装备', '舒适透气，运动必备', '经典款式，永不过时',
             '轻便耐用，户外首选', '功能齐全，适应多种环境', '安全可靠，保障运动安全',
@@ -209,6 +257,7 @@ PRODUCT_CATEGORIES = {
             '飞利浦电动牙刷', '欧乐B电动牙刷', '舒客牙膏', '高露洁牙膏',
             '海飞丝洗发水', '潘婷护发素', '沙宣洗护套装', '施华蔻专业护发'
         ],
+        'brands': ['兰蔻', '雅诗兰黛', 'SK-II', '资生堂', '欧莱雅', '玉兰油', '科颜氏', '倩碧', '薇诺娜', '理肤泉', '薇姿', '雅漾', '飞利浦', '欧乐B', '舒客', '高露洁', '海飞丝', '潘婷', '沙宣', '施华蔻'],
         'descriptions': [
             '专业护肤，品质保证', '明星产品，口碑之选', '深层滋养，焕发肌肤活力',
             '健康生活，从这里开始', '科学研究配方，效果显著', '温和不刺激，适合敏感肌',
@@ -223,6 +272,7 @@ PRODUCT_CATEGORIES = {
             '可口可乐', '百事可乐', '雪碧', '芬达', '美年达',
             '康师傅方便面', '统一老坛酸菜', '今麦郎拉面', '白象大骨面', '五谷道场'
         ],
+        'brands': ['星巴克', '三顿半', '瑞幸', '雀巢', '麦斯威尔', '伊利', '蒙牛', '光明', '君乐宝', '安慕希', '可口可乐', '百事可乐', '雪碧', '芬达', '美年达', '康师傅', '统一', '今麦郎', '白象', '五谷道场'],
         'descriptions': [
             '品质保证，香醇可口', '精选原料，口感丰富', '提神醒脑，享受时光',
             '便捷冲泡，随时随地享受', '营养丰富，健康美味', '品牌保证，值得信赖',
@@ -238,6 +288,7 @@ PRODUCT_CATEGORIES = {
             'HyperX耳机', '赛睿耳机', '罗技G933', '北通游戏手柄', '小鸡手柄',
             '8BitDo手柄', '游戏椅DXRacer', '安德玛电竞椅'
         ],
+        'brands': ['索尼', '任天堂', '微软', 'Steam', 'ROG', '外星人', '机械革命', '雷蛇', '罗技', '赛睿', '海盗船', '雷柏', 'HyperX', '北通', '小鸡', '8BitDo', 'DXRacer', '安德玛'],
         'descriptions': [
             '家庭娱乐，畅快体验', '高端配置，性能强劲', '游戏爱好者的首选',
             '便携设计，随时随地游戏', '沉浸式体验，身临其境', '画质清晰，流畅运行',
@@ -253,6 +304,7 @@ PRODUCT_CATEGORIES = {
             '金号毛巾', '维达纸巾', '清风纸巾', '心相印湿巾', '蓝漂湿巾',
             '得宝纸巾'
         ],
+        'brands': ['宜家', '顾家家居', '林氏木业', '全友家居', '红苹果', '左右', '芝华仕', '喜临门', '慕思', '富安娜', '罗莱家纺', '水星家纺', '博洋家纺', '洁丽雅', '金号', '维达', '清风', '心相印', '蓝漂', '得宝'],
         'descriptions': [
             '舒适家居，品质生活', '设计时尚，提升品味', '材质环保，健康安全',
             '做工精细，经久耐用', '功能实用，满足日常需求', '款式多样，选择丰富',
@@ -267,6 +319,7 @@ PRODUCT_CATEGORIES = {
             '时间简史', '人类简史', '未来简史', '原则', '穷爸爸富爸爸',
             'Kindle电子书', 'iPad阅读器', '掌阅iReader', '当当阅读器', '微信读书'
         ],
+        'brands': ['人民文学出版社', '作家出版社', '中信出版社', '机械工业出版社', '电子工业出版社', 'Kindle', '苹果', '掌阅', '当当', '微信读书'],
         'descriptions': [
             '经典名著，文化传承', '知识丰富，增长见识', '印刷精美，阅读体验佳',
             '内容精彩，引人入胜', '装帧考究，收藏价值高', '正版图书，品质保证',
@@ -302,34 +355,6 @@ EMAIL_DOMAINS = [
     'aliyun.com', 'foxmail.com', 'live.com', 'msn.com',
     'sina.cn', 'tom.com', '21cn.com', 'yeah.net', '263.net',
     'wo.cn', '139.com', '189.cn', 'hainan.net', 'eyou.com'
-]
-
-# 更多真实品牌名称
-REAL_BRANDS = [
-    '苹果', '三星', '华为', '小米', 'OPPO', 'vivo', '联想', '戴尔', '惠普',
-    '耐克', '阿迪达斯', '新百伦', '优衣库', 'ZARA', 'H&M', '太平鸟', '森马',
-    '美的', '格力', '海尔', '西门子', '松下', '九阳', '苏泊尔', '老板',
-    '兰蔻', '雅诗兰黛', 'SK-II', '资生堂', '欧莱雅', '玉兰油', '科颜氏',
-    '可口可乐', '百事可乐', '雀巢', '伊利', '蒙牛', '君乐宝', '安慕希',
-    '路易威登', '香奈儿', '迪奥', '古驰', '普拉达', '爱马仕', '卡地亚',
-    '奔驰', '宝马', '奥迪', '丰田', '本田', '大众', '福特', '现代',
-    '宜家', '无印良品', '名创优品', '网易严选', '小米有品', '京东京造',
-    '索尼', '微软', '佳能', '尼康', '富士', '卡西欧', '飞利浦', '松下',
-    '迪士尼', '乐高', '孩之宝', '任天堂', '暴雪', '腾讯', '网易', '阿里'
-]
-
-# 更真实的图片域名
-IMAGE_DOMAINS = [
-    'img.examplestore.com', 'images.shopmall.com', 'pic.ecommerce.cn',
-    'static.onlineshop.net', 'cdn.retailworld.com', 'assets.shoppingzone.org',
-    'image.mystore.com', 'photos.onlinestore.cn', 'media.ecommerce.net'
-]
-
-# 图片路径模板
-IMAGE_PATHS = [
-    '/products/main.jpg', '/products/detail.png', '/items/gallery.webp',
-    '/goods/preview.jpg', '/catalog/display.png', '/inventory/photo.webp',
-    '/uploads/products/front.jpg', '/images/items/back.png', '/media/goods/side.webp'
 ]
 
 # 真实的订单状态
@@ -397,7 +422,7 @@ VALUE_GENERATION_RULES = {
     'code': lambda field, context: f"CODE{random.randint(10000, 99999)}",
     'gender': lambda field, context: random.choice(['M', 'F']),
     'category': lambda field, context: random.choice(list(PRODUCT_CATEGORIES.keys())),
-    'brand': lambda field, context: random.choice(REAL_BRANDS),
+    'brand': lambda field, context: generate_brand_for_category(context),  # 修改这里
     'count': lambda field, context: random.randint(1, 100),
     'image': lambda field, context: generate_realistic_image_url(field, context),
     'password': lambda field, context: generate_realistic_password(field, context),
@@ -416,20 +441,41 @@ ENTITY_POOLS = defaultdict(list)
 # 表关系映射（自动从外键约束中提取）
 TABLE_RELATIONSHIPS = {}
 
-# 已生成的SPU信息，用于SKU关联
-SPU_INFO_POOL = []
-
 # 已生成的用户信息，用于订单关联
 USER_INFO_POOL = []
 
-# 已生成的订单信息，用于订单详情关联
-ORDER_INFO_POOL = []
-
-# 已生成的SKU信息，用于订单详情关联
-SKU_INFO_POOL = []
+# 已生成的商品信息，用于日志关联
+PRODUCT_INFO_POOL = []
 
 # 用于存储已生成的购买记录，以便生成重复购买
 PURCHASE_HISTORY = defaultdict(list)  # {(user_id, product_id): [order_ids, ...]}
+
+# 用于存储用户姓名和性别的映射，确保一致性
+USER_NAME_GENDER_MAPPING = {}
+
+# 用于存储已生成的用户ID，确保用户唯一性
+GENERATED_USER_IDS = {}
+
+# 用于存储已生成的商品ID，确保商品唯一性
+GENERATED_PRODUCT_IDS = {}
+
+# 存储已使用的用户名，确保用户唯一性
+USED_USER_NAMES = set()
+
+# 存储已生成的用户信息，确保每个用户只生成一次
+GENERATED_USERS = {}
+
+# 存储已生成的商品信息，确保品类、商品和品牌匹配
+GENERATED_PRODUCTS = {}
+
+# 存储已生成的商品品类与品牌映射关系
+CATEGORY_BRAND_MAPPING = {}
+
+# 存储预生成的用户列表
+PRE_GENERATED_USERS = []
+
+# 存储预生成的商品列表
+PRE_GENERATED_PRODUCTS = []
 
 
 # 数据库连接池
@@ -490,7 +536,20 @@ def generate_realistic_name(field, context):
 
     # 用户真实姓名（直接使用真实姓名）
     if 'name' in field_name and ('user' in field_name or field_name == 'name'):
-        return random.choice(REAL_USER_NAMES)
+        # 从可用的用户名列表中选择，确保唯一性
+        available_names = [name for name in USER_NAME_GENDER_MAP.keys() if name not in USED_USER_NAMES]
+
+        # 如果所有名字都用完了，清空已使用集合重新开始
+        if not available_names:
+            USED_USER_NAMES.clear()
+            available_names = list(USER_NAME_GENDER_MAP.keys())
+
+        name = random.choice(available_names)
+        USED_USER_NAMES.add(name)
+
+        # 记录姓名和性别的映射关系
+        USER_NAME_GENDER_MAPPING[name] = USER_NAME_GENDER_MAP[name]
+        return name
 
     # 用户登录名（真实姓名拼音+随机种子）
     elif 'login' in field_name:
@@ -499,7 +558,7 @@ def generate_realistic_name(field, context):
             pinyin = USER_NAME_PINYIN[context['name']]
         else:
             # 否则随机选择一个姓名
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
 
         # 添加随机后缀，可以是数字或字母组合
@@ -520,7 +579,7 @@ def generate_realistic_name(field, context):
             suffix = str(random.randint(10, 999))
             return f"{nickname}{suffix}"
         else:
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
             suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(2, 4)))
             return f"{pinyin}{suffix}"
@@ -534,11 +593,11 @@ def generate_realistic_name(field, context):
 
     # 收货人名称
     elif 'consignee' in field_name:
-        return random.choice(REAL_USER_NAMES)
+        return random.choice(list(USER_NAME_GENDER_MAP.keys()))
 
     # 通用名称
     else:
-        name = random.choice(REAL_USER_NAMES)
+        name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
         pinyin = USER_NAME_PINYIN.get(name, name.lower())
         suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
         return f"{pinyin}_{suffix}"
@@ -562,7 +621,7 @@ def generate_realistic_email(field, context):
     if 'name' in context and context['name'] in USER_NAME_PINYIN:
         pinyin = USER_NAME_PINYIN[context['name']]
     else:
-        name = random.choice(REAL_USER_NAMES)
+        name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
         pinyin = USER_NAME_PINYIN.get(name, name.lower())
 
     number = random.randint(1, 9999)
@@ -642,6 +701,20 @@ def generate_realistic_password(field, context):
     return ''.join(password)
 
 
+# 根据品类生成匹配的品牌
+def generate_brand_for_category(context):
+    # 如果上下文中已有品类信息，根据品类选择对应的品牌
+    if 'category_name' in context and context['category_name'] in PRODUCT_CATEGORIES:
+        category_info = PRODUCT_CATEGORIES[context['category_name']]
+        return random.choice(category_info['brands'])
+    else:
+        # 随机选择一个品类，然后从中选择品牌
+        category = random.choice(list(PRODUCT_CATEGORIES.keys()))
+        # 将品类信息添加到上下文中，确保后续生成的品牌与品类匹配
+        context['category_name'] = category
+        return random.choice(PRODUCT_CATEGORIES[category]['brands'])
+
+
 # 生成真实的通用值
 def generate_realistic_general_value(field, context):
     field_name = field['name'].lower()
@@ -680,7 +753,7 @@ def generate_realistic_general_value(field, context):
             return round(random.uniform(0, 10000), 2)
         elif 'varchar' in field_type or 'char' in field_type or 'text' in field_type:
             # 生成更有意义的字符串
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
             suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
             value = f"{pinyin}_{suffix}"
@@ -690,7 +763,7 @@ def generate_realistic_general_value(field, context):
             else:
                 return generate_date_value(field, context)
         else:
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
             suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
             value = f"{pinyin}_{suffix}"
@@ -725,7 +798,7 @@ def parse_create_table_sql(create_sql):
     # 提取字段信息
     field_info = []
     # 更精确的字段匹配模式，排除索引等非字段定义
-    field_pattern = r'`(\w+)`\s+([^,\n]+?)(?:\s+COMMENT\s+[\'\"](.*?)[\'\"])?(?:,|\s*\)[^,]*?(?:ENGINE|COMMENT|DEFAULT))'
+    field_pattern = r'`(\w+)`\s+([^,\n]+?)(?:\s+COMMENT\s+[\'\"](.*?)[\'\"])?(?:,|\s*\)[^,]*?(?:ENGINE|COMMENT|DEFAULT|CONSTRAINT))'
     fields = re.findall(field_pattern, create_sql, re.IGNORECASE | re.DOTALL)
 
     for field in fields:
@@ -938,13 +1011,13 @@ def generate_id_value(field, context):
 
     # 生成新的ID值，范围调整为1-10000
     if 'product' in field_name or 'item' in field_name:
-        value = random.randint(1, 10000)
+        value = random.randint(1, 1000)
     elif 'user' in field_name:
-        value = random.randint(1, 10000)
+        value = random.randint(1, 1000)
     elif 'order' in field_name:
-        value = random.randint(1, 10000)
+        value = random.randint(1, 1000)
     else:
-        value = random.randint(1, 10000)
+        value = random.randint(1, 1000)
 
     # 添加到实体池
     ENTITY_POOLS[pool_key].append(value)
@@ -1009,7 +1082,7 @@ def generate_general_value(field, context):
         return round(random.uniform(0, 10000), 2)
     elif 'varchar' in field_type or 'char' in field_type or 'text' in field_type:
         # 字符串类型字段生成字符串值
-        name = random.choice(REAL_USER_NAMES)
+        name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
         pinyin = USER_NAME_PINYIN.get(name, name.lower())
         suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
         value = f"{pinyin}_{suffix}"
@@ -1024,7 +1097,7 @@ def generate_general_value(field, context):
             return generate_date_value(field, context)
     else:
         # 默认生成字符串值
-        name = random.choice(REAL_USER_NAMES)
+        name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
         pinyin = USER_NAME_PINYIN.get(name, name.lower())
         suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
         return f"{pinyin}_{suffix}"
@@ -1042,58 +1115,31 @@ def generate_smart_value(field, context=None):
     field_length = field.get('length')
 
     # 处理外键关联字段
-    # SPU与SKU关联
-    if field_name == 'spu_id' and SPU_INFO_POOL:
-        return random.choice(SPU_INFO_POOL)['id']
-
-    # 订单与订单详情关联
-    if field_name == 'order_id' and ORDER_INFO_POOL:
-        return random.choice(ORDER_INFO_POOL)['id']
-
-    # SKU与订单详情关联
-    if field_name == 'sku_id' and SKU_INFO_POOL:
-        selected_sku = random.choice(SKU_INFO_POOL)
-        # 同步sku_name
-        context['sku_name'] = selected_sku['sku_name']
-        return selected_sku['id']
-
     # 用户与订单关联 - 支持重复购买
     if field_name == 'user_id':
-        # 如果已经存在用户ID上下文，有一定概率复用
-        if 'user_id' in context:
-            return context['user_id']
+        # 如果已经有预生成的用户，从预生成用户中选择
+        if PRE_GENERATED_USERS:
+            user = random.choice(PRE_GENERATED_USERS)
+            return user['user_id']
+        # 否则生成有效的用户ID（1-1000）
+        return random.randint(1, 1000)
 
-        # 有一定概率选择已存在的用户以生成重复购买
-        if USER_INFO_POOL and random.random() < REPEAT_PURCHASE_RATIO:
-            return random.choice(USER_INFO_POOL)['id']
-        elif USER_INFO_POOL:
-            return random.choice(USER_INFO_POOL)['id']
-        else:
-            # 如果没有用户池，则生成新用户ID
-            return generate_id_value(field, context)
-
-    # 产品ID与订单关联 - 支持重复购买
+    # 产品ID与订单关联
     if field_name == 'product_id':
-        # 如果已经存在产品ID上下文，有一定概率复用
-        if 'product_id' in context:
-            return context['product_id']
+        # 如果已经有预生成的商品，从预生成商品中选择
+        if PRE_GENERATED_PRODUCTS:
+            product = random.choice(PRE_GENERATED_PRODUCTS)
+            return product['product_id']
+        # 否则生成有效的商品ID（1-1000）
+        return random.randint(1, 1000)
 
-        # 根据一定概率选择已存在的产品以生成重复购买
-        if random.random() < REPEAT_PURCHASE_RATIO and PURCHASE_HISTORY:
-            # 从已有的购买记录中选择一个用户和商品组合
-            user_product_pair = random.choice(list(PURCHASE_HISTORY.keys()))
-            return user_product_pair[1]  # 返回product_id
-        else:
-            # 生成新的产品ID
-            return random.randint(1, 10000)
-
-    # 父订单ID关联
-    if field_name == 'parent_order_id' and ORDER_INFO_POOL:
-        # 90%概率返回None，10%概率返回一个已存在的订单ID
-        if random.random() < 0.9:
-            return None
-        else:
-            return random.choice(ORDER_INFO_POOL)['id']
+    # 处理用户性别字段，确保与姓名一致
+    if field_name == 'gender':
+        # 如果上下文中已有用户姓名，使用对应的性别
+        if 'user_name' in context and context['user_name'] in USER_NAME_GENDER_MAPPING:
+            return USER_NAME_GENDER_MAPPING[context['user_name']]
+        # 否则随机选择性别
+        return random.choice(['M', 'F'])
 
     # 如果上下文中已有该字段值，有一定概率复用
     if field_name in context and random.random() < 0.3:
@@ -1139,7 +1185,7 @@ def generate_smart_value(field, context=None):
 
         elif 'varchar' in field_type or 'char' in field_type or 'text' in field_type:
             # 默认生成通用字符串
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
             suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
             value = f"{pinyin}_{suffix}"
@@ -1158,7 +1204,7 @@ def generate_smart_value(field, context=None):
                 value = generate_date_value(field, context)
 
         else:
-            name = random.choice(REAL_USER_NAMES)
+            name = random.choice(list(USER_NAME_GENDER_MAP.keys()))
             pinyin = USER_NAME_PINYIN.get(name, name.lower())
             suffix = ''.join(random.choices('abcdefghijklmnopqrstuvwxyz0123456789', k=random.randint(3, 6)))
             value = f"{pinyin}_{suffix}"
@@ -1187,13 +1233,69 @@ def create_table_if_not_exists(create_sql):
         release_db_connection(connection)
 
 
+# 预生成用户数据
+def pre_generate_users(count=100):
+    """预生成用户数据"""
+    users = []
+    used_names = set()
+
+    for i in range(count):
+        # 选择一个未使用的用户名
+        available_names = [name for name in USER_NAME_GENDER_MAP.keys() if name not in used_names]
+        if not available_names:
+            # 如果所有名字都用完了，清空已使用集合重新开始
+            used_names.clear()
+            available_names = list(USER_NAME_GENDER_MAP.keys())
+
+        name = random.choice(available_names)
+        used_names.add(name)
+
+        user = {
+            'user_id': i + 1,
+            'user_name': name,
+            'gender': USER_NAME_GENDER_MAP[name],
+            'level': random.choice(USER_LEVELS)
+        }
+        users.append(user)
+
+    return users
+
+
+# 预生成商品数据
+def pre_generate_products(count=200):
+    """预生成商品数据"""
+    products = []
+
+    for i in range(count):
+        # 随机选择一个品类
+        category = random.choice(list(PRODUCT_CATEGORIES.keys()))
+        category_info = PRODUCT_CATEGORIES[category]
+
+        # 从该品类中选择一个商品
+        product_name = random.choice(category_info['products'])
+
+        # 从该品类的品牌中选择一个品牌
+        brand = random.choice(category_info['brands'])
+
+        product = {
+            'product_id': i + 1,
+            'product_name': product_name,
+            'category_name': category,
+            'brand': brand,
+            'price': round(random.uniform(10, 10000), 2)
+        }
+        products.append(product)
+
+    return products
+
+
 # 智能生成并插入数据批次
 def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, start_id):
-    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL, PURCHASE_HISTORY
+    global USER_INFO_POOL, PRODUCT_INFO_POOL, PURCHASE_HISTORY
 
     data = []
-    # 过滤自增字段
-    non_auto_fields = [f for f in fields if not f['is_auto_increment']]
+    # 过滤自增字段和外键约束（外键约束不应该作为字段插入）
+    non_auto_fields = [f for f in fields if not f['is_auto_increment'] and not f['name'].startswith('fk_')]
     field_names = [field['name'] for field in non_auto_fields]
     print(f"字段信息: {field_names}")
 
@@ -1225,26 +1327,16 @@ def generate_and_insert_data_batch(table_name, fields, batch_num, batch_size, st
                     PURCHASE_HISTORY[(user_id, product_id)] = PURCHASE_HISTORY[(user_id, product_id)][
                                                               -MAX_REPEAT_PURCHASES:]
 
-        if table_name == 'spu_info':
-            SPU_INFO_POOL.append(record_dict)
-            # 限制池大小
-            if len(SPU_INFO_POOL) > 1000:
-                SPU_INFO_POOL = SPU_INFO_POOL[-500:]
-        elif table_name == 'user_info':
+        if table_name == 'user_info':
             USER_INFO_POOL.append(record_dict)
             # 限制池大小
             if len(USER_INFO_POOL) > 1000:
                 USER_INFO_POOL = USER_INFO_POOL[-500:]
-        elif table_name == 'order_info':
-            ORDER_INFO_POOL.append(record_dict)
+        elif table_name == 'product_info':
+            PRODUCT_INFO_POOL.append(record_dict)
             # 限制池大小
-            if len(ORDER_INFO_POOL) > 1000:
-                ORDER_INFO_POOL = ORDER_INFO_POOL[-500:]
-        elif table_name == 'sku_info':
-            SKU_INFO_POOL.append(record_dict)
-            # 限制池大小
-            if len(SKU_INFO_POOL) > 1000:
-                SKU_INFO_POOL = SKU_INFO_POOL[-500:]
+            if len(PRODUCT_INFO_POOL) > 1000:
+                PRODUCT_INFO_POOL = PRODUCT_INFO_POOL[-500:]
 
         data.append(tuple(record_data))
 
@@ -1291,7 +1383,7 @@ def show_sample_data(table_name, limit=5):
 
 # 主函数
 def main():
-    global SPU_INFO_POOL, USER_INFO_POOL, ORDER_INFO_POOL, SKU_INFO_POOL, PURCHASE_HISTORY
+    global USER_INFO_POOL, PRODUCT_INFO_POOL, PURCHASE_HISTORY, PRE_GENERATED_USERS, PRE_GENERATED_PRODUCTS
 
     try:
         print(f"开始处理数据库: {MYSQL_DB}")
@@ -1302,18 +1394,74 @@ def main():
         print(f"最大重复购买次数: {MAX_REPEAT_PURCHASES}")
 
         # 清空关联池
-        SPU_INFO_POOL.clear()
         USER_INFO_POOL.clear()
-        ORDER_INFO_POOL.clear()
-        SKU_INFO_POOL.clear()
+        PRODUCT_INFO_POOL.clear()
         PURCHASE_HISTORY.clear()
+        USER_NAME_GENDER_MAPPING.clear()
+        GENERATED_USER_IDS.clear()
+        GENERATED_PRODUCT_IDS.clear()
+        USED_USER_NAMES.clear()
+        GENERATED_USERS.clear()
+        GENERATED_PRODUCTS.clear()
+        CATEGORY_BRAND_MAPPING.clear()
+
+        # 预生成用户和商品数据
+        PRE_GENERATED_USERS = pre_generate_users(100)
+        PRE_GENERATED_PRODUCTS = pre_generate_products(200)
+
+        print(f"预生成了 {len(PRE_GENERATED_USERS)} 个用户")
+        print(f"预生成了 {len(PRE_GENERATED_PRODUCTS)} 个商品")
 
         # 存储所有表名和字段信息，用于推断关系
         all_tables_info = {}
 
+        # 第一步：先处理主表（user_info和product_info）
+        main_tables = []
+        log_tables = []
+
         for i, create_sql in enumerate(CREATE_TABLE_SQL_LIST):
-            print(f"\n========== 处理第 {i + 1} 个表 ==========")
             table_name, fields = parse_create_table_sql(create_sql)
+            if table_name in ['user_info', 'product_info']:
+                main_tables.append((i, create_sql, table_name, fields))
+            else:
+                log_tables.append((i, create_sql, table_name, fields))
+
+        # 先处理主表
+        for i, create_sql, table_name, fields in main_tables:
+            print(f"\n========== 处理第 {i + 1} 个表 ==========")
+            all_tables_info[table_name] = fields
+            print(f"解析到表名: {table_name}")
+            print("解析到字段:")
+            for field in fields:
+                length_info = f" (长度: {field['length']})" if field['length'] else ""
+                precision_info = f" (精度: {field['precision']})" if field['precision'] else ""
+                id_type = " (数字ID)" if field.get('is_numeric_id') else ""
+                integer_type = " (整数)" if field.get('is_integer') else ""
+                print(
+                    f"  - {field['name']} ({field['type']}) - {field['comment']} (语义: {field['semantic']}){length_info}{precision_info}{id_type}{integer_type}")
+
+            print(f"\n开始创建表 {table_name}...")
+            if not create_table_if_not_exists(create_sql):
+                print(f"跳过表 {table_name} 的数据生成")
+                continue
+
+            num_batches = TOTAL_RECORDS // BATCH_SIZE
+            if TOTAL_RECORDS % BATCH_SIZE > 0:
+                num_batches += 1
+
+            print(f"\n开始生成数据，总共 {TOTAL_RECORDS} 条记录，分 {num_batches} 批次处理...")
+            for batch_num in range(num_batches):
+                start_id = batch_num * BATCH_SIZE + 1
+                current_batch_size = min(BATCH_SIZE, TOTAL_RECORDS - (batch_num * BATCH_SIZE))
+                generate_and_insert_data_batch(table_name, fields, batch_num + 1, current_batch_size, start_id)
+                time.sleep(0.01)  # 减少延迟
+
+            print(f"\n表 {table_name} 数据生成完成，共 {TOTAL_RECORDS} 条记录")
+            show_sample_data(table_name)
+
+        # 再处理日志表
+        for i, create_sql, table_name, fields in log_tables:
+            print(f"\n========== 处理第 {i + 1} 个表 ==========")
             all_tables_info[table_name] = fields
             print(f"解析到表名: {table_name}")
             print("解析到字段:")

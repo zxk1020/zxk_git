@@ -9,8 +9,8 @@ from pyspark.sql.functions import lit
 
 # -------------------------- 配置项（在此处修改库名和连接信息） --------------------------
 # 直接修改以下两个参数即可指定同步的库名
-MYSQL_DB = "gd10"  # MySQL数据库名
-HIVE_DB = "gd10"  # Hive数据库名
+MYSQL_DB = "gd1"  # MySQL数据库名
+HIVE_DB = "gd1"  # Hive数据库名
 
 DEFAULT_MYSQL_CONFIG = {
     "host": "192.168.142.130",
