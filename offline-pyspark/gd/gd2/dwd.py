@@ -51,7 +51,7 @@ def force_delete_hdfs_path(path):
 
 
 # 处理日期参数
-process_date = "20250108"  # 可根据需要修改为具体日期
+process_date = "20250105"  # 可根据需要修改为具体日期
 process_date_ymd = datetime.datetime.strptime(process_date, "%Y%m%d").strftime("%Y-%m-%d")
 
 

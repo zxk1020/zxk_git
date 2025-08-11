@@ -255,7 +255,7 @@ if __name__ == "__main__":
         'port': 3306,
         'user': 'root',
         'password': 'root',
-        'database': 'gd02'
+        'database': 'ads_gd02'
     }
 
     syncer = HiveToMySQLSync(spark, "gd02", config)

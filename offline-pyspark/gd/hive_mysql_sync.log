@@ -207,3 +207,106 @@ py4j.protocol.Py4JNetworkError: Error while sending or receiving
 2025-08-04 09:32:16,694 - INFO - Closing down clientserver connection
 2025-08-04 09:32:16,695 - ERROR - 同步表 dws_page_click_distribution_d 数据失败: An error occurred while calling o142.collectToPython
 2025-08-04 09:32:16,696 - ERROR - 表 dws_page_click_distribution_d 同步失败，跳过继续处理其他表
+2025-08-10 19:38:54,918 - INFO - 发现 19 张待同步表
+2025-08-10 19:38:55,753 - WARNING - 表 ads_product_efficiency_monitor 中发现重复列: dt，已跳过
+2025-08-10 19:38:56,406 - INFO - 表 ads_product_efficiency_monitor 结构同步成功
+2025-08-10 19:39:01,092 - INFO - 表 ads_product_efficiency_monitor 数据同步完成，记录数: 1
+2025-08-10 19:39:01,545 - WARNING - 表 ads_product_range_analysis 中发现重复列: dt，已跳过
+2025-08-10 19:39:01,952 - INFO - 表 ads_product_range_analysis 结构同步成功
+2025-08-10 19:39:04,011 - INFO - 表 ads_product_range_analysis 数据同步完成，记录数: 159
+2025-08-10 19:39:04,617 - WARNING - 表 dim_category 中发现重复列: dt，已跳过
+2025-08-10 19:39:05,006 - INFO - 表 dim_category 结构同步成功
+2025-08-10 19:39:08,712 - INFO - 表 dim_category 数据同步完成，记录数: 640
+2025-08-10 19:39:09,230 - WARNING - 表 dim_payment_status 中发现重复列: dt，已跳过
+2025-08-10 19:39:09,600 - INFO - 表 dim_payment_status 结构同步成功
+2025-08-10 19:39:09,898 - INFO - Error while receiving.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+RuntimeError: reentrant call inside <_io.BufferedReader name=816>
+2025-08-10 19:39:09,934 - INFO - Closing down clientserver connection
+2025-08-10 19:39:09,934 - ERROR - Exception while sending command.
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 511, in send_command
+    answer = smart_decode(self.stream.readline()[:-1])
+RuntimeError: reentrant call inside <_io.BufferedReader name=816>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\java_gateway.py", line 1038, in send_command
+    response = connection.send_command(command)
+  File "D:\ANACONDA\envs\offline-pyspark\lib\site-packages\py4j\clientserver.py", line 539, in send_command
+    raise Py4JNetworkError(
+py4j.protocol.Py4JNetworkError: Error while sending or receiving
+2025-08-10 20:53:51,209 - INFO - 准备同步 4 张表: ads_category_sale_ranking, ads_hot_product_ranking, ads_hot_search_word, ads_platform_core_index
+2025-08-10 20:54:28,846 - INFO - 发现 17 张待同步表
+2025-08-10 20:54:29,420 - WARNING - 表 ads_category_sale_ranking 中发现重复列: stat_period，已跳过
+2025-08-10 20:54:29,742 - INFO - 表 ads_category_sale_ranking 结构同步成功
+2025-08-10 20:54:33,570 - INFO - 表 ads_category_sale_ranking 数据同步完成，记录数: 40
+2025-08-10 20:54:34,016 - WARNING - 表 ads_hot_product_ranking 中发现重复列: stat_period，已跳过
+2025-08-10 20:54:34,308 - INFO - 表 ads_hot_product_ranking 结构同步成功
+2025-08-10 20:54:36,899 - INFO - 表 ads_hot_product_ranking 数据同步完成，记录数: 487
+2025-08-10 20:54:37,333 - WARNING - 表 ads_hot_search_word 中发现重复列: stat_period，已跳过
+2025-08-10 20:54:37,694 - INFO - 表 ads_hot_search_word 结构同步成功
+2025-08-10 20:54:38,638 - ERROR - 同步表 ads_hot_search_word 数据失败: (1241, 'Operand should contain 1 column(s)')
+2025-08-10 20:54:38,638 - ERROR - 表 ads_hot_search_word 同步失败，跳过继续处理其他表
+2025-08-10 20:54:38,970 - WARNING - 表 ads_platform_core_index 中发现重复列: stat_period，已跳过
+2025-08-10 20:54:39,286 - INFO - 表 ads_platform_core_index 结构同步成功
+2025-08-10 20:54:40,015 - INFO - 表 ads_platform_core_index 数据同步完成，记录数: 6
+2025-08-10 20:54:40,714 - INFO - 表 dim_product_category 结构同步成功
+2025-08-10 20:54:41,655 - INFO - 表 dim_product_category 数据同步完成，记录数: 8
+2025-08-10 20:54:42,399 - INFO - 表 dim_traffic_source 结构同步成功
+2025-08-10 20:54:42,823 - INFO - 表 dim_traffic_source 数据同步完成，记录数: 6
+2025-08-10 20:54:43,184 - WARNING - 表 dwd_product_sale_detail 中发现重复列: dt，已跳过
+2025-08-10 20:54:43,458 - INFO - 表 dwd_product_sale_detail 结构同步成功
+2025-08-10 20:54:44,714 - ERROR - 同步表 dwd_product_sale_detail 数据失败: An error occurred while calling o134.cancelAllJobs.
+: java.lang.IllegalStateException: Cannot call methods on a stopped SparkContext.
+This stopped SparkContext was created at:
+
+org.apache.spark.api.java.JavaSparkContext.<init>(JavaSparkContext.scala:58)
+sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:247)
+py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+py4j.Gateway.invoke(Gateway.java:238)
+py4j.commands.ConstructorCommand.invokeConstructor(ConstructorCommand.java:80)
+py4j.commands.ConstructorCommand.execute(ConstructorCommand.java:69)
+py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:182)
+py4j.ClientServerConnection.run(ClientServerConnection.java:106)
+java.lang.Thread.run(Thread.java:748)
+
+The currently active SparkContext was created at:
+
+org.apache.spark.api.java.JavaSparkContext.<init>(JavaSparkContext.scala:58)
+sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+java.lang.reflect.Constructor.newInstance(Constructor.java:423)
+py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:247)
+py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+py4j.Gateway.invoke(Gateway.java:238)
+py4j.commands.ConstructorCommand.invokeConstructor(ConstructorCommand.java:80)
+py4j.commands.ConstructorCommand.execute(ConstructorCommand.java:69)
+py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:182)
+py4j.ClientServerConnection.run(ClientServerConnection.java:106)
+java.lang.Thread.run(Thread.java:748)
+         
+	at org.apache.spark.SparkContext.assertNotStopped(SparkContext.scala:122)
+	at org.apache.spark.SparkContext.cancelAllJobs(SparkContext.scala:2591)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at py4j.reflection.MethodInvoker.invoke(MethodInvoker.java:244)
+	at py4j.reflection.ReflectionEngine.invoke(ReflectionEngine.java:374)
+	at py4j.Gateway.invoke(Gateway.java:282)
+	at py4j.commands.AbstractCommand.invokeMethod(AbstractCommand.java:132)
+	at py4j.commands.CallCommand.execute(CallCommand.java:79)
+	at py4j.ClientServerConnection.waitForCommands(ClientServerConnection.java:182)
+	at py4j.ClientServerConnection.run(ClientServerConnection.java:106)
+	at java.lang.Thread.run(Thread.java:748)
+
+2025-08-10 20:54:44,715 - ERROR - 表 dwd_product_sale_detail 同步失败，跳过继续处理其他表
