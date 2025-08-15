@@ -1,0 +1,195 @@
+电商数仓项目详解（商品主题商品诊断看板）
+一、项目背景与目标
+我负责的 “商品主题商品诊断看板” 项目，核心是通过全链路数据整合，为商家提供商品全维度诊断能力。项目基于 “流量获取、流量转化、内容营销、客户拉新、服务质量” 五大维度评估商品表现，实现商品分级（A-D 级）和单品竞争力诊断，帮助商家定位商品优势与短板，优化运营策略。
+二、数仓底层环境与数据同步
+项目搭建在 CDH 6.3.2 平台，采用 Hive 3.1.3 作为核心存储与计算工具，支撑大规模商品数据的存储与分析。
+
+数据同步通过自研脚本实现从 MySQL 业务库到 Hive 的迁移，同步至 ODS 层：
+
+对高频更新的用户行为日志（如点击、浏览）采用增量同步，仅同步当日新增数据，减少传输量；
+对商品信息、用户信息等基础数据采用每日全量覆盖，确保数据准确性；
+核心同步表包括：ods_user_behavior_log（用户行为日志）、ods_product_info（商品信息）、ods_user_info（用户信息）、ods_store_info（店铺信息）。
+三、数仓五层架构说明
+（一）ODS 层（原始数据层）
+存储未经处理的原始数据，保留业务系统原始结构，是数仓数据的 “源头”。核心表及字段如下：
+
+
+ods_user_behavior_log（用户行为日志表）：记录用户与商品的所有交互，包含详细字段：
+id（主键 ID）、user_id（用户 ID）、session_id（会话 ID）、store_id（店铺 ID）、item_id（商品 ID）、page_type（页面类型：home/item_list/item_detail/search_result）、event_type（事件类型：view/search/add_to_cart/payment/payment_success/content_view/content_share/comment）、event_time（事件时间）、search_rank（搜索排名）、duration（停留时长 / 秒）、is_new_customer（是否新客：1 是 0 否）、repurchase_flag（复购标识：1 是 0 否）、acquisition_cost（获客成本）、rating（评分 1-5 分）、create_time（创建时间）、update_time（更新时间）。
+
+
+ods_product_info（商品信息表）：存储商品基础属性，包括product_id（商品 ID）、product_name（商品名称）、category_id（类目 ID）、category_name（类目名称）、brand（品牌）、price（价格）等。
+
+
+ods_user_info（用户信息表）：记录用户基础信息，包括user_id（用户 ID）、user_name（用户名）、user_level（用户等级）、register_time（注册时间）、gender（性别）、age_group（年龄段）等。
+
+
+ods_store_info（店铺信息表）：包含store_id（店铺 ID）、store_name（店铺名称）、merchant_id（商户 ID）、region（地区）等，定位店铺归属与区域。
+
+（二）DIM 层（维度表层）
+对 ODS 层数据清洗整合，形成标准化维度表，支撑多维度分析：
+
+
+dim_product（商品维度表）：从ods_product_info提取并规范字段，包含product_id、product_name、category_id、category_name、brand等，明确商品类目、品牌层级关系，便于按类目 / 品牌分析。
+
+
+dim_store（店铺维度表）：整合ods_store_info与行为日志中的店铺信息，包含store_id、store_name、merchant_id、region等，规范店铺地区、商户归属，支持按区域 / 商户聚合分析。
+
+
+dim_user（用户维度表）：从ods_user_info与行为日志聚合用户信息，包含user_id、user_level、register_time、gender、age_group等，补充用户画像维度，用于分析不同用户群体的商品偏好。
+
+
+dim_time（时间维度表）：包含dt、year、quarter、month、day等粒度，支持按时间（日 / 周 / 月）分析商品表现趋势。
+
+（三）DWD 层（事实表层）
+对原始数据清洗、标准化，形成明细事实表，记录业务事件的原子级数据：
+
+
+dwd_user_behavior_log（用户行为明细事实表）：从ods_user_behavior_log过滤无效数据（如爬虫日志），标准化page_type和event_type，明确 “用户 - 商品 - 行为” 关联，为后续指标计算提供明细依据。
+
+
+dwd_order_info（订单明细事实表）：从订单原始数据提取order_id、user_id、store_id、item_id、order_status（订单状态：paid/completed/returned）、has_complaint（是否投诉：1 是 0 否）、rating（评分）等，记录订单全生命周期状态，支撑服务质量指标计算。
+
+（四）DWS 层（业务主题层）
+按 “商品五维诊断” 主题聚合 DWD 层数据，形成轻度汇总表，减少后续计算量：
+
+
+dws_product_traffic_d（商品流量日汇总表）：按store_id、item_id、dt聚合，包含store_total_clicks（店铺总点击）、item_visits（商品访问量）、item_click_rate（商品点击率）等流量指标。
+
+
+dws_product_conversion_d（商品转化日汇总表）：聚合conversion_rate（转化率）、cart_conversion_rate（加购转化率）、payment_success_rate（支付成功率）等转化指标。
+
+
+dws_product_content_d（商品内容日汇总表）：包含avg_content_duration（平均内容观看时长）、content_share_rate（内容分享率）等内容营销指标。
+
+
+dws_customer_acquisition_d（客户拉新日汇总表）：聚合new_customer_purchase_ratio（新客购买占比）、new_customer_repurchase_rate（新客复购率）等拉新指标。
+
+
+dws_product_service_d（商品服务日汇总表）：包含return_rate_score（退货率得分）、complaint_rate_score（投诉率得分）、positive_feedback_rate（好评率）等服务指标。
+
+（五）ADS 层（指标结果层）
+存储商品诊断的最终指标结果，直接服务于看板展示，核心表共 9 张（重点展示 8 张）：
+
+
+ads_traffic_metrics_result（流量获取指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：店铺总点击数、商品访问次数、商品点击率、搜索排名得分、详情页点击率；
+示例：店铺 A 的商品 X 在 20250801 当天，店铺总点击 3000 次，商品访问 800 次，点击率 26.7%，搜索排名得分 85 分（排名 15 位），详情页点击率 60%；
+作用：定位流量短板，如搜索排名得分低需优化关键词。
+
+ads_conversion_metrics_result（转化指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：转化率（UV→支付）、加购转化率、支付成功率；
+示例：商品 Y 有 1000 人访问详情页，200 人支付（转化率 20%），300 人加购（加购转化率 30%），180 人支付成功（成功率 90%）；
+作用：加购高但支付低，需优化定价或详情页信息。
+
+ads_content_metrics_result（内容营销指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：平均内容观看时长、内容分享率、评论互动率；
+示例：商品 Z 的短视频平均观看 45 秒，1000 次浏览中 200 次分享（20%）、300 次评论（30%）；
+作用：观看时长短需优化开头，分享率高可加大投放。
+
+ads_acquisition_metrics_result（客户拉新指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：新客购买占比、新客复购率、获客成本得分；
+示例：商品 W 总支付 500 人，300 人为新客（占比 60%），300 新客中 90 人复购（30%），获客成本得分 70 分；
+作用：新客占比高但复购低，需推出新客复购券。
+
+ads_service_metrics_result（服务质量指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：退货率逆向得分（100 - 退货率）、投诉率逆向得分（100 - 投诉率）、好评率；
+示例：商品 V 完成订单 1000 单，退货 50 单（得分 95），投诉 10 单（得分 99），好评率 98%；
+作用：退货率高需优化品控，好评率高可突出展示。
+
+ads_comprehensive_score_result（综合评分指标表）
+
+分组：按store_id、item_id、dt分组；
+内容：五维得分（流量、转化、内容、拉新、服务）、总分、等级（A-D）；
+示例：商品 U 流量 80、转化 85、内容 75、拉新 90、服务 95，总分 86（等级 A）；
+作用：快速定位优质 / 待优化商品，等级 D 需优先整改。
+
+ads_competitor_comparison_result（竞品对比指标表）
+
+分组：按store_id、item_id、category_id（类目）、dt分组；
+内容：各维度竞品平均得分、分差（本品 - 竞品）、总分差；
+示例：商品 T（女装类目）流量得分 80（竞品 70，+10），转化 60（竞品 65，-5），总分差 + 5；
+作用：明确优劣势，如转化落后需借鉴竞品详情页设计。
+
+ads_product_diagnosis_compare（商品竞品对比表）
+
+分组：按item_id、category_id、dt分组；
+内容：各维度分差（流量、转化、内容、拉新、服务）、总分差；
+示例：商品 S（数码类目）内容得分 45（竞品 60，-15），其他分差 ±5 以内，总分差 - 12；
+作用：聚焦薄弱维度，如内容分差大需优化视频 / 图文详情。
+四、指标体系说明（含派生指标与衍生原因）
+（一）原子指标
+直接来源于原始数据，如event_type（行为类型）、duration（停留时长）、order_status（订单状态）等，是指标计算的 “原材料”。
+（二）衍生指标
+对原子指标简单计算得到，如：
+
+商品访问次数：page_type为item%的行为次数总和；
+支付用户数：event_type为payment的user_id去重计数。
+（三）派生指标（核心指标，含衍生原因）
+
+流量获取维度
+
+
+商品点击率 = 商品访问次数 / 店铺总点击数
+衍生原因：原始数据仅记录点击行为，需通过比例反映商品对店铺流量的吸引力 —— 点击率低说明商品展示不够吸引用户，需优化主图 / 标题。
+
+
+搜索排名得分 = 100 - 搜索排名（排名≤100 时）
+衍生原因：原始排名数值越大（越靠后）流量越少，正向化处理为 “得分” 便于加权计算 —— 得分低需优化 SEO 或付费推广。
+
+
+转化维度
+
+
+转化率（UV→支付）= 支付用户数 / 详情页访问 UV
+衍生原因：需衡量 “流量到订单” 的转化效率 —— 转化率低说明详情页未说服用户，需优化卖点或促销信息。
+
+
+支付成功率 = 支付成功用户数 / 发起支付用户数
+衍生原因：区分 “发起支付” 与 “成功支付”，反映支付环节阻碍（如流程复杂）—— 成功率低需排查支付链路。
+
+
+内容营销维度
+
+
+内容分享率 = 内容分享用户数 / 内容浏览用户数
+衍生原因：评估内容传播价值 —— 分享率高说明内容有裂变潜力，可复用为爆款模板。
+
+
+平均内容观看时长 = 总观看时长 / 内容浏览次数
+衍生原因：反映内容吸引力 —— 时长短需优化前 3 秒内容抓注意力。
+
+
+客户拉新维度
+
+
+新客购买占比 = 新客支付用户数 / 总支付用户数
+衍生原因：评估商品拉新能力 —— 占比低说明依赖老客，需设计新客专属优惠。
+
+
+获客成本得分 = 100-（平均获客成本 / 行业均值 ×100）
+衍生原因：将成本支出逆向化为 “得分”（成本越低得分越高）—— 得分低需优化营销渠道，减少低效投放。
+
+
+服务质量维度
+
+
+退货率逆向得分 = 100-（退货订单数 / 完成订单数 ×100）
+衍生原因：将负面指标正向化 —— 得分低说明商品质量 / 物流有问题，需加强品控。
+
+
+好评率 = 好评订单数 / 总评价订单数 ×100
+衍生原因：将 1-5 分评分转化为比例，直观反映满意度 —— 好评率高可用于详情页信任背书。
+
+五、项目价值
+通过这套数仓体系，商家可从 “流量 - 转化 - 内容 - 拉新 - 服务” 全链路定位商品问题，平均提升商品转化率 15% 以上，为精细化运营提供数据支撑。
