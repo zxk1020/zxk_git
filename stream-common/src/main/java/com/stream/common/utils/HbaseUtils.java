@@ -2,10 +2,7 @@ package com.stream.common.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import lombok.SneakyThrows;
-import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
@@ -206,13 +203,35 @@ public class HbaseUtils {
         }
     }
 
+    /**
+     * 创建HBase命名空间
+     * @param nameSpace 命名空间名称
+     * @throws IOException 操作异常
+     */
+    public void createNamespace(String nameSpace) throws IOException {
+        Admin admin = connection.getAdmin();
+        NamespaceDescriptor namespaceDescriptor = NamespaceDescriptor.create(nameSpace).build();
+        try {
+            admin.createNamespace(namespaceDescriptor);
+            LOG.info("命名空间 {} 创建成功", nameSpace);
+        } catch (NamespaceExistException e) {
+            LOG.warn("命名空间 {} 已存在", nameSpace);
+        } finally {
+            admin.close();
+        }
+    }
+
     @SneakyThrows
     public static void main(String[] args) {
         System.setProperty("HADOOP_USER_NAME","root");
         HbaseUtils hbaseUtils = new HbaseUtils("cdh01,cdh02,cdh03");
 //        hbaseUtils.dropHbaseNameSpace("GMALL_FLINK_2207");
 //        System.err.println(hbaseUtils.tableIsExists("realtime_v2:dim_user_info"));
-        hbaseUtils.deleteTable("ns_zxn:dim_base_category1");
+//        hbaseUtils.deleteTable("ns_zxn:dim_base_category1");
 //        hbaseUtils.getHbaseNameSpaceAllTablesList("realtime_v2");
+//        hbaseUtils.createNamespace("map_create_hbase_dim_0814");
+//        hbaseUtils.createTable("ns_zxn","aa_0818");
+//        hbaseUtils.tableIsExists("ns_zxn:aa_0818");
+//        hbaseUtils.getHbaseNameSpaceAllTablesList("ns_zxn");
     }
 }
