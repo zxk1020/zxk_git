@@ -17,20 +17,21 @@ redis.pwd=
 
 # Kafka 本地或开发环境配置（若本地没启动，可填测试集群地址）
 Kafka.bootstrap.servers=192.168.142.128:9092,192.168.142.129:9092,192.168.142.130:9092
-REALTIME.KAFKA.LOG.TOPIC=realtime_log_0814
+REALTIME.KAFKA.LOG.TOPIC=realtime_log_0819
 kafka.dirty.topic=dirty_log
 kafka.err.log=err_log
 kafka.start.log=start_log
 kafka.display.log=display_log
 kafka.action.log=action_log
 kafka.page.topic=ods_page_log
-kafka.cdc.db.topic=mysql_cdc_to_kafka_0814
+
+kafka.cdc.db.topic=mysql_cdc_to_kafka_0819
 
 # Zookeeper 本地配置
 zookeeper.server.host.list=192.168.142.128:2181
 
 # HBase 本地配置
-hbase.namespace=default
+hbase.namespace=map_create_hbase_dim_0814
 
 # 暂时不用的服务可留空或注释
 holo.endpoint=
