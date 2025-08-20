@@ -25,6 +25,9 @@ kafka.display.log=display_log
 kafka.action.log=action_log
 kafka.page.topic=ods_page_log
 
+kafka.dwd.comment.info=dwd_comment_info
+kafka.dwd.cart.info=dwd_cart_info
+
 kafka.cdc.db.topic=mysql_cdc_to_kafka_0819
 
 # Zookeeper 本地配置

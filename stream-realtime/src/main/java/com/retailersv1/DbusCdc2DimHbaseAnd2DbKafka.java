@@ -47,6 +47,7 @@ public class DbusCdc2DimHbaseAnd2DbKafka {
                 "",
                 ConfigUtils.getString("mysql.user"),
                 ConfigUtils.getString("mysql.pwd"),
+                "2800-2988",
                 StartupOptions.initial()
         );
 
@@ -57,6 +58,7 @@ public class DbusCdc2DimHbaseAnd2DbKafka {
                 "realtime_v1_config.table_process_dim",
                 ConfigUtils.getString("mysql.user"),
                 ConfigUtils.getString("mysql.pwd"),
+                "3001-4000",
                 StartupOptions.initial()
         );
 
@@ -82,37 +84,37 @@ public class DbusCdc2DimHbaseAnd2DbKafka {
 //
 //
 //
-//        SingleOutputStreamOperator<JSONObject> cdcDbDimStreamMap = cdcDbDimStream.map(JSONObject::parseObject)
-//                .uid("dim_data_convert_json")
-//                .name("dim_data_convert_json")
-//                .setParallelism(1);
-//
-//        SingleOutputStreamOperator<JSONObject> cdcDbDimStreamMapCleanColumn = cdcDbDimStreamMap.map(s -> {
-//                    s.remove("source");
-//                    s.remove("transaction");
-//                    JSONObject resJson = new JSONObject();
-//                    if ("d".equals(s.getString("op"))){
-//                        resJson.put("before",s.getJSONObject("before"));
-//                    }else {
-//                        resJson.put("after",s.getJSONObject("after"));
-//                    }
-//                    resJson.put("op",s.getString("op"));
-//                    return resJson;
-//                }).uid("clean_json_column_map")
-//                .name("clean_json_column_map");
-//
-//
-//        SingleOutputStreamOperator<JSONObject> tpDS = cdcDbDimStreamMapCleanColumn.map(new MapUpdateHbaseDimTableFunc(CDH_ZOOKEEPER_SERVER, CDH_HBASE_NAME_SPACE))
-//                .uid("map_create_hbase_dim_table")
-//                .name("map_create_hbase_dim_table");
+        SingleOutputStreamOperator<JSONObject> cdcDbDimStreamMap = cdcDbDimStream.map(JSONObject::parseObject)
+                .uid("dim_data_convert_json")
+                .name("dim_data_convert_json")
+                .setParallelism(1);
+
+        SingleOutputStreamOperator<JSONObject> cdcDbDimStreamMapCleanColumn = cdcDbDimStreamMap.map(s -> {
+                    s.remove("source");
+                    s.remove("transaction");
+                    JSONObject resJson = new JSONObject();
+                    if ("d".equals(s.getString("op"))){
+                        resJson.put("before",s.getJSONObject("before"));
+                    }else {
+                        resJson.put("after",s.getJSONObject("after"));
+                    }
+                    resJson.put("op",s.getString("op"));
+                    return resJson;
+                }).uid("clean_json_column_map")
+                .name("clean_json_column_map");
+
+
+        SingleOutputStreamOperator<JSONObject> tpDS = cdcDbDimStreamMapCleanColumn.map(new MapUpdateHbaseDimTableFunc(CDH_ZOOKEEPER_SERVER, CDH_HBASE_NAME_SPACE))
+                .uid("map_create_hbase_dim_table")
+                .name("map_create_hbase_dim_table");
 
 
 
-//        MapStateDescriptor<String, JSONObject> mapStageDesc = new MapStateDescriptor<>("mapStageDesc", String.class, JSONObject.class);
-//        BroadcastStream<JSONObject> broadcastDs = tpDS.broadcast(mapStageDesc);
-//        BroadcastConnectedStream<JSONObject, JSONObject> connectDs = cdcDbMainStreamMap.connect(broadcastDs);
-//
-//        connectDs.process(new ProcessSpiltStreamToHBaseDimFunc(mapStageDesc));
+        MapStateDescriptor<String, JSONObject> mapStageDesc = new MapStateDescriptor<>("mapStageDesc", String.class, JSONObject.class);
+        BroadcastStream<JSONObject> broadcastDs = tpDS.broadcast(mapStageDesc);
+        BroadcastConnectedStream<JSONObject, JSONObject> connectDs = cdcDbMainStreamMap.connect(broadcastDs);
+
+        connectDs.process(new ProcessSpiltStreamToHBaseDimFunc(mapStageDesc));
 
 
 
