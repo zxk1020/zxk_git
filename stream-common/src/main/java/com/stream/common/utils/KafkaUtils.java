@@ -9,6 +9,7 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.connector.kafka.sink.KafkaSink;
 import org.apache.flink.connector.kafka.source.KafkaSource;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
+import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDeserializationSchema;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -23,11 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * time: 2021/8/11 10:20 className: KafkaUtils.java
@@ -94,17 +93,49 @@ public final class KafkaUtils {
         }
     }
 
-    public static KafkaSource<String> buildKafkaSource(String bootServerList,String kafkaTopic,String group,OffsetsInitializer offset){
+//    public static KafkaSource<String> buildKafkaSource(String bootServerList,String kafkaTopic,String group,OffsetsInitializer offset){
+//        return KafkaSource.<String>builder()
+//                .setBootstrapServers(bootServerList)
+//                .setTopics(kafkaTopic)
+//                .setGroupId(group)
+//                .setStartingOffsets(offset)
+//                .setValueOnlyDeserializer(new SimpleStringSchema())
+//                // 自动发现消费的partition变化
+//                .setProperty("flink.partition-discovery.interval-millis",String.valueOf(10 * 1000))
+//                .build();
+//    }
+//public static KafkaSource<String> buildKafkaSource(String bootServerList, String kafkaTopic, String group, OffsetsInitializer offset) {
+//    return KafkaSource.<String>builder()
+//            .setBootstrapServers(bootServerList)
+//            .setTopics(kafkaTopic)
+//            .setGroupId(group)
+//            .setStartingOffsets(offset)
+//            .setValueOnlyDeserializer(new SimpleStringSchema())
+//            // 设置唯一的 client.id 前缀，避免 MBean 冲突
+//            .setProperty("client.id.prefix", "flink-kafka-source-" + System.currentTimeMillis() + "-" + ThreadLocalRandom.current().nextInt(1000))
+//            // 自动发现消费的partition变化
+//            .setProperty("flink.partition-discovery.interval-millis", String.valueOf(10 * 1000))
+//            .build();
+//}
+
+    public static KafkaSource<String> buildKafkaSource(String bootServerList, String kafkaTopic, String group, OffsetsInitializer offset) {
         return KafkaSource.<String>builder()
                 .setBootstrapServers(bootServerList)
                 .setTopics(kafkaTopic)
                 .setGroupId(group)
                 .setStartingOffsets(offset)
                 .setValueOnlyDeserializer(new SimpleStringSchema())
-                // 自动发现消费的partition变化
-                .setProperty("flink.partition-discovery.interval-millis",String.valueOf(10 * 1000))
+                // 使用正确的配置方式设置客户端ID前缀
+                .setDeserializer(
+                        KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema())
+                )
+                // 设置发现间隔（正确的API）
+                .setProperty("partition.discovery.interval.ms", "10000")
+                // 设置唯一的客户端ID前缀
+                .setClientIdPrefix("flink-source-" + UUID.randomUUID().toString().substring(0, 8))
                 .build();
     }
+
 
     public static KafkaSource<String> buildKafkaSecureSource(String bootServerList,String kafkaTopic,String group,OffsetsInitializer offset){
         return KafkaSource.<String>builder()
@@ -120,14 +151,41 @@ public final class KafkaUtils {
 
 
 
+//    public static KafkaSink<String> buildKafkaSink(String bootServerList, String kafkaTopic) {
+//        Properties producerProperties = new Properties();
+//        producerProperties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootServerList);
+//        producerProperties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
+//        producerProperties.setProperty(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
+//        producerProperties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,"true");
+//        producerProperties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.ByteArraySerializer.class.getName());
+//        producerProperties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.ByteArraySerializer.class.getName());
+//
+//        System.err.println("Kafka Producer配置参数：");
+//        producerProperties.forEach((key, value) -> System.out.println(key + " = " + value));
+//
+//        return KafkaSink.<String>builder()
+//                .setBootstrapServers(bootServerList)
+//                .setRecordSerializer(
+//                        KafkaRecordSerializationSchema.builder()
+//                                .setTopic(kafkaTopic)
+//                                .setValueSerializationSchema(new SimpleStringSchema())
+//                                .build()
+//                )
+//                .setKafkaProducerConfig(producerProperties)
+//                .build();
+//    }
+
     public static KafkaSink<String> buildKafkaSink(String bootServerList, String kafkaTopic) {
+        // 不要在 producerProperties 中设置序列化器，让 KafkaSink 自动处理
         Properties producerProperties = new Properties();
         producerProperties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootServerList);
         producerProperties.setProperty(ProducerConfig.ACKS_CONFIG, "all");
         producerProperties.setProperty(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
-        producerProperties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,"true");
-        producerProperties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.ByteArraySerializer.class.getName());
-        producerProperties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, org.apache.kafka.common.serialization.ByteArraySerializer.class.getName());
+        producerProperties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+
+        // 移除这些行，避免覆盖默认序列化器
+        // producerProperties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ...);
+        // producerProperties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ...);
 
         System.err.println("Kafka Producer配置参数：");
         producerProperties.forEach((key, value) -> System.out.println(key + " = " + value));
@@ -140,6 +198,7 @@ public final class KafkaUtils {
                                 .setValueSerializationSchema(new SimpleStringSchema())
                                 .build()
                 )
+                // 只传递必要的生产者配置
                 .setKafkaProducerConfig(producerProperties)
                 .build();
     }
@@ -166,15 +225,34 @@ public final class KafkaUtils {
         }
     }
 
+//    public static boolean kafkaTopicExists(String bootStrapServer, String kafkaTopicName) {
+//        Properties properties = new Properties();
+//        properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
+//        try {
+//            AdminClient adminClient = AdminClient.create(properties);
+//            // 直接查询指定主题的元数据
+//            Map<String, TopicDescription> stringTopicDescriptionMap = adminClient.describeTopics(Collections.singleton(kafkaTopicName)).allTopicNames().get();
+//            // 若返回的map包含该主题，则存在
+//            System.err.println(stringTopicDescriptionMap);
+//            return stringTopicDescriptionMap.containsKey(kafkaTopicName);
+//        } catch (ExecutionException e) {
+//            Throwable cause = e.getCause();
+//            if (cause instanceof UnknownTopicOrPartitionException) {
+//                return false;
+//            }
+//            throw new RuntimeException("查询主题元数据失败", e);
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
     public static boolean kafkaTopicExists(String bootStrapServer, String kafkaTopicName) {
         Properties properties = new Properties();
         properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootStrapServer);
-        try {
-            AdminClient adminClient = AdminClient.create(properties);
-            // 直接查询指定主题的元数据
-            Map<String, TopicDescription> stringTopicDescriptionMap = adminClient.describeTopics(Collections.singleton(kafkaTopicName)).allTopicNames().get();
-            // 若返回的map包含该主题，则存在
-            System.err.println(stringTopicDescriptionMap);
+        // 只设置必要的 AdminClient 配置
+        try (AdminClient adminClient = AdminClient.create(properties)) {
+            Map<String, TopicDescription> stringTopicDescriptionMap =
+                    adminClient.describeTopics(Collections.singleton(kafkaTopicName)).allTopicNames().get();
             return stringTopicDescriptionMap.containsKey(kafkaTopicName);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
