@@ -108,8 +108,8 @@ public class DbusCdc2DwdKafka {
 
         System.out.println("🔧 Flink环境配置完成");
 
-        processLogData(env);
-        processDbCdcData(env);
+//        processLogData(env);
+               processDbCdcData(env);
 
         System.out.println("🏁 准备提交Flink作业...");
         env.execute("Job-DbusCdc2DwdKafka");
@@ -169,35 +169,40 @@ public class DbusCdc2DwdKafka {
                     @Override
                     public void processElement(JSONObject value, Context ctx, Collector<String> out) throws Exception {
                         try {
-                            String type = value.getString("type");
-                            System.out.println("🏷️ 数据类型: " + type);
+                            System.out.println("🏷️ 处理日志数据: ");
 
-                            switch (type) {
-                                case "start":
-                                    System.out.println("🚀 启动日志: " + value.toJSONString());
-                                    ctx.output(startTag, value.toJSONString());
-                                    break;
-                                case "page":
-                                    System.out.println("📄 页面日志: " + value.toJSONString());
-                                    ctx.output(pageTag, value.toJSONString());
-                                    break;
-                                case "action":
-                                    System.out.println("👆 动作日志: " + value.toJSONString());
-                                    ctx.output(actionTag, value.toJSONString());
-                                    break;
-                                case "display":
-                                    System.out.println("👀 曝光日志: " + value.toJSONString());
-                                    ctx.output(displayTag, value.toJSONString());
-                                    break;
-                                case "err":
-                                    System.out.println("⚠️ 错误日志: " + value.toJSONString());
-                                    ctx.output(errTag, value.toJSONString());
-                                    break;
-                                default:
-                                    System.out.println("❓ 未知类型日志: " + type + ", 数据: " + value.toJSONString());
-                                    ctx.output(errTag, value.toJSONString());
-                                    break;
+                            // 直接检查JSON对象中是否包含特定字段进行分流
+                            if (value.containsKey("start")) {
+                                System.out.println("🚀 启动日志: " + value.toJSONString());
+                                ctx.output(startTag, value.toJSONString());
                             }
+                            if (value.containsKey("page")) {
+                                System.out.println("📄 页面日志: " + value.toJSONString());
+                                ctx.output(pageTag, value.toJSONString());
+                            }
+                            if (value.containsKey("action")) {
+                                System.out.println("👆 动作日志: " + value.toJSONString());
+                                ctx.output(actionTag, value.toJSONString());
+                            }
+                            if (value.containsKey("displays")) {
+                                System.out.println("👀 曝光日志: " + value.toJSONString());
+                                ctx.output(displayTag, value.toJSONString());
+                            }
+                            if (value.containsKey("err")) {
+                                System.out.println("⚠️ 错误日志: " + value.toJSONString());
+                                ctx.output(errTag, value.toJSONString());
+                            }
+
+                            // 如果没有任何已知字段，发送到错误流
+                            if (!value.containsKey("start") &&
+                                    !value.containsKey("page") &&
+                                    !value.containsKey("action") &&
+                                    !value.containsKey("displays") &&
+                                    !value.containsKey("err")) {
+                                System.out.println("❓ 未知类型日志: " + value.toJSONString());
+                                ctx.output(errTag, value.toJSONString());
+                            }
+
                         } catch (Exception e) {
                             System.out.println("❌ 日志分流异常: " + value.toJSONString() + ", 错误: " + e.getMessage());
                             ctx.output(errTag, value.toJSONString());
@@ -260,12 +265,7 @@ public class DbusCdc2DwdKafka {
     }
 
 
-    /**
-     * 处理数据库CDC数据
-     */
-    /**
-     * 处理数据库CDC数据
-     */
+
     /**
      * 处理数据库CDC数据
      */
@@ -363,19 +363,19 @@ public class DbusCdc2DwdKafka {
                                 case "order_info":
                                     System.out.println("📝 订单信息数据: " + value.toJSONString());
                                     // 处理所有操作类型，不仅仅是update
-                                    if ("update".equals(op)) {
+//                                    if ("update".equals(op)) {
                                         System.out.println("❌ 订单取消数据: " + value.toJSONString());
                                         ctx.output(orderCancelTag, value.toJSONString());
-                                    }
+//                                    }
                                     // 可以在这里添加其他订单操作的处理
                                     break;
                                 case "payment_info":
                                     System.out.println("💳 支付信息数据: " + value.toJSONString());
                                     // 处理所有操作类型，不仅仅是update
-                                    if ("update".equals(op)) {
-                                        System.out.println("💰 支付成功数据: " + value.toJSONString());
-                                        ctx.output(paymentSuccessTag, value.toJSONString());
-                                    }
+//                                    if ("update".equals(op)) {
+                                    System.out.println("💰 支付成功数据: " + value.toJSONString());
+                                    ctx.output(paymentSuccessTag, value.toJSONString());
+//                                    }
                                     // 可以在这里添加其他支付操作的处理
                                     break;
                                 case "order_refund_info":
@@ -388,28 +388,28 @@ public class DbusCdc2DwdKafka {
                                     break;
                                 case "coupon_use":
                                     System.out.println("🎟️ 优惠券使用数据: " + value.toJSONString());
-                                    if ("insert".equals(op)) {
-                                        System.out.println("📥 领券数据: " + value.toJSONString());
-                                        ctx.output(couponGetTag, value.toJSONString());
-                                    } else if ("update".equals(op)) {
-                                        System.out.println("📤 用券数据: " + value.toJSONString());
-                                        ctx.output(couponUseTag, value.toJSONString());
-                                    }
+//                                    if ("insert".equals(op)) {
+//                                    System.out.println("📥 领券数据: " + value.toJSONString());
+                                    ctx.output(couponGetTag, value.toJSONString());
+//                                    } else if ("update".equals(op)) {
+//                                        System.out.println("📤 用券数据: " + value.toJSONString());
+                                    ctx.output(couponUseTag, value.toJSONString());
+//                                    }
                                     break;
                                 // 添加其他可能的事实表
                                 case "base_attr_value":
                                     System.out.println("🏷️ 属性值数据: " + value.toJSONString());
                                     // 根据业务需求决定如何处理这个表
-                                    ctx.output(errTag, "UNHANDLED_FACT_TABLE:" + value.toJSONString());
+                                    ctx.output(errTag,value.toJSONString());
                                     break;
                                 default:
                                     System.out.println("❓ 未处理的事实表数据 - 表名: " + table + ", 数据: " + value.toJSONString());
-                                    ctx.output(errTag, "UNHANDLED_FACT_TABLE:" + value.toJSONString());
+                                    ctx.output(errTag,value.toJSONString());
                                     break;
                             }
                         } catch (Exception e) {
                             System.out.println("❌ CDC分流异常: " + value.toJSONString() + ", 错误: " + e.getMessage());
-                            ctx.output(errTag, "PROCESS_ERROR:" + value.toJSONString());
+                            ctx.output(errTag,value.toJSONString());
                         }
                     }
                 }).uid("db_split_stream")
@@ -481,7 +481,7 @@ public class DbusCdc2DwdKafka {
         // 用户注册
         DataStream<String> userRegisterDs = dbProcessedDs.getSideOutput(userRegisterTag);
         userRegisterDs.print("👤 用户注册侧流");
-        userRegisterDs.process(new DwdUserRegisterProcessFunc())
+        userRegisterDs.process(new DwdTradeOrderRefundProcessFunc())
                 .uid("dwd_user_register_process")
                 .name("dwd_user_register_process")
                 .sinkTo(KafkaUtils.buildKafkaSink(kafka_botstrap_servers, kafka_dwd_user_register_topic))

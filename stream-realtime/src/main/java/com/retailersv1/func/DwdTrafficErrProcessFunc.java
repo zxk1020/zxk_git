@@ -15,9 +15,9 @@ public class DwdTrafficErrProcessFunc extends ProcessFunction<String, String> {
 
             JSONObject result = new JSONObject();
             result.put("mid", common.getString("mid"));
-            result.put("user_id", common.getString("user_id"));
-            result.put("err_code", err.getString("err_code"));
-            result.put("err_msg", err.getString("err_msg"));
+            result.put("user_id", common.getString("uid"));  // 修改字段名 uid
+            result.put("err_code", err.getInteger("error_code"));  // 修改字段名 error_code并改为Integer类型
+            result.put("err_msg", err.getString("msg"));  // 修改字段名 msg
             result.put("ts", jsonObject.getLong("ts"));
 
             out.collect(result.toJSONString());

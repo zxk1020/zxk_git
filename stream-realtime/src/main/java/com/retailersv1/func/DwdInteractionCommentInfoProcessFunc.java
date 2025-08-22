@@ -17,10 +17,10 @@ public class DwdInteractionCommentInfoProcessFunc extends ProcessFunction<String
             result.put("user_id", data.getString("user_id"));
             result.put("sku_id", data.getString("sku_id"));
             result.put("appraise", data.getString("appraise"));
-            result.put("appraise_name", data.getString("appraise_name"));
+            result.put("appraise_name", data.getString("appraise")); // 原数据中没有appraise_name，使用appraise
             result.put("comment_txt", data.getString("comment_txt"));
-            result.put("create_time", data.getString("create_time"));
-            result.put("ts", jsonObject.getLong("ts"));
+            result.put("create_time", data.getLong("create_time")); // 修改为Long类型
+            result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
 
             out.collect(result.toJSONString());
         } catch (Exception e) {
@@ -28,3 +28,4 @@ public class DwdInteractionCommentInfoProcessFunc extends ProcessFunction<String
         }
     }
 }
+

@@ -15,9 +15,9 @@ public class DwdUserRegisterProcessFunc extends ProcessFunction<String, String> 
             JSONObject result = new JSONObject();
             result.put("id", data.getString("id"));
             result.put("login_name", data.getString("login_name"));
-            result.put("register_time", data.getString("register_time"));
+            result.put("register_time", data.getLong("create_time")); // 字段名修正
             result.put("province_id", data.getString("province_id"));
-            result.put("ts", jsonObject.getLong("ts"));
+            result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
 
             out.collect(result.toJSONString());
         } catch (Exception e) {
@@ -25,3 +25,4 @@ public class DwdUserRegisterProcessFunc extends ProcessFunction<String, String> 
         }
     }
 }
+

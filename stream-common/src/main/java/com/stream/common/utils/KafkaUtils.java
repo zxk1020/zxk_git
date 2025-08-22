@@ -118,23 +118,37 @@ public final class KafkaUtils {
 //            .build();
 //}
 
-    public static KafkaSource<String> buildKafkaSource(String bootServerList, String kafkaTopic, String group, OffsetsInitializer offset) {
-        return KafkaSource.<String>builder()
-                .setBootstrapServers(bootServerList)
-                .setTopics(kafkaTopic)
-                .setGroupId(group)
-                .setStartingOffsets(offset)
-                .setValueOnlyDeserializer(new SimpleStringSchema())
-                // 使用正确的配置方式设置客户端ID前缀
-                .setDeserializer(
-                        KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema())
-                )
-                // 设置发现间隔（正确的API）
-                .setProperty("partition.discovery.interval.ms", "10000")
-                // 设置唯一的客户端ID前缀
-                .setClientIdPrefix("flink-source-" + UUID.randomUUID().toString().substring(0, 8))
-                .build();
-    }
+//    public static KafkaSource<String> buildKafkaSource(String bootServerList, String kafkaTopic, String group, OffsetsInitializer offset) {
+//        return KafkaSource.<String>builder()
+//                .setBootstrapServers(bootServerList)
+//                .setTopics(kafkaTopic)
+//                .setGroupId(group)
+//                .setStartingOffsets(offset)
+//                .setValueOnlyDeserializer(new SimpleStringSchema())
+//                // 使用正确的配置方式设置客户端ID前缀
+//                .setDeserializer(
+//                        KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema())
+//                )
+//                // 设置发现间隔（正确的API）
+//                .setProperty("partition.discovery.interval.ms", "10000")
+//                // 设置唯一的客户端ID前缀
+//                .setClientIdPrefix("flink-source-" + UUID.randomUUID().toString().substring(0, 8))
+//                .build();
+//    }
+public static KafkaSource<String> buildKafkaSource(String bootServerList, String kafkaTopic, String group, OffsetsInitializer offset) {
+    return KafkaSource.<String>builder()
+            .setBootstrapServers(bootServerList)
+            .setTopics(kafkaTopic)
+            .setGroupId(group)
+            .setStartingOffsets(offset)
+            .setDeserializer(KafkaRecordDeserializationSchema.valueOnly(new SimpleStringSchema()))
+            // 使用正确的配置方式设置分区发现间隔
+            .setProperty("flink.partition-discovery.interval-millis", "10000")
+            // 移除不支持的client.id.prefix配置
+            .build();
+}
+
+
 
 
     public static KafkaSource<String> buildKafkaSecureSource(String bootServerList,String kafkaTopic,String group,OffsetsInitializer offset){

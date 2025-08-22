@@ -18,12 +18,12 @@ public class DwdTradeOrderDetailProcessFunc extends ProcessFunction<String, Stri
             result.put("user_id", data.getString("user_id"));
             result.put("sku_id", data.getString("sku_id"));
             result.put("sku_name", data.getString("sku_name"));
-            result.put("sku_num", data.getString("sku_num"));
-            result.put("split_original_amount", data.getString("split_original_amount"));
+            result.put("sku_num", data.getInteger("sku_num")); // 修改为Integer类型
+            result.put("split_original_amount", data.getString("order_price")); // 字段名修正
             result.put("split_activity_amount", data.getString("split_activity_amount"));
             result.put("split_coupon_amount", data.getString("split_coupon_amount"));
-            result.put("create_time", data.getString("create_time"));
-            result.put("ts", jsonObject.getLong("ts"));
+            result.put("create_time", data.getLong("create_time")); // 修改为Long类型
+            result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
 
             out.collect(result.toJSONString());
         } catch (Exception e) {

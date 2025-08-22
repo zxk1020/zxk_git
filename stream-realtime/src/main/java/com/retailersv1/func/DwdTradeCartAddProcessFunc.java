@@ -16,8 +16,8 @@ public class DwdTradeCartAddProcessFunc extends ProcessFunction<String, String> 
             result.put("id", data.getString("id"));
             result.put("user_id", data.getString("user_id"));
             result.put("sku_id", data.getString("sku_id"));
-            result.put("sku_num", data.getString("sku_num"));
-            result.put("ts", jsonObject.getLong("ts"));
+            result.put("sku_num", data.getInteger("sku_num")); // 修改为Integer类型
+            result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
 
             out.collect(result.toJSONString());
         } catch (Exception e) {

@@ -17,10 +17,10 @@ public class DwdTradeOrderRefundProcessFunc extends ProcessFunction<String, Stri
             result.put("order_id", data.getString("order_id"));
             result.put("user_id", data.getString("user_id"));
             result.put("sku_id", data.getString("sku_id"));
-            result.put("refund_num", data.getString("refund_num"));
+            result.put("refund_num", data.getInteger("refund_num")); // 修改为Integer类型
             result.put("refund_amount", data.getString("refund_amount"));
-            result.put("create_time", data.getString("create_time"));
-            result.put("ts", jsonObject.getLong("ts"));
+            result.put("create_time", data.getLong("create_time")); // 修改为Long类型
+            result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
 
             out.collect(result.toJSONString());
         } catch (Exception e) {
@@ -28,3 +28,4 @@ public class DwdTradeOrderRefundProcessFunc extends ProcessFunction<String, Stri
         }
     }
 }
+

@@ -10,9 +10,14 @@ mysql.user=root
 mysql.pwd=root
 mysql.databases.conf=realtime_v1_config
 # Redis 本地配置
-redis.host=localhost
-redis.port=6379
-redis.user=
+doris.fenodes=192.168.142.128:8031
+doris.username=root
+doris.password=
+doris.database=FlinkDws2Doris
+
+redis.host=192.168.142.128:8031
+redis.port=8031
+redis.user=root
 redis.pwd=
 
 # Kafka 本地或开发环境配置（若本地没启动，可填测试集群地址）

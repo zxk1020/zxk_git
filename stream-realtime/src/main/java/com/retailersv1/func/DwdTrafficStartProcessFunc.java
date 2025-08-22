@@ -11,14 +11,17 @@ public class DwdTrafficStartProcessFunc extends ProcessFunction<String, String> 
         try {
             JSONObject jsonObject = JSONObject.parseObject(value);
             JSONObject common = jsonObject.getJSONObject("common");
+            JSONObject start = jsonObject.getJSONObject("start");  // 原代码错误，应为start而不是start
 
             JSONObject result = new JSONObject();
             result.put("mid", common.getString("mid"));
-            result.put("user_id", common.getString("user_id"));
-            result.put("channel", common.getString("channel"));
-            result.put("start_type", jsonObject.getJSONObject("start").getString("start_type"));
+            result.put("user_id", common.getString("uid"));  // 修改字段名 uid
+            result.put("channel", common.getString("ch"));  // 修改字段名 ch
+            result.put("start_type", start.getString("entry"));  // 修改字段名 entry
             result.put("ts", jsonObject.getLong("ts"));
             result.put("is_new", common.getString("is_new"));
+            // 添加额外字段
+            result.put("loading_time", start.getLong("loading_time"));
 
             out.collect(result.toJSONString());
         } catch (Exception e) {
@@ -26,3 +29,4 @@ public class DwdTrafficStartProcessFunc extends ProcessFunction<String, String> 
         }
     }
 }
+

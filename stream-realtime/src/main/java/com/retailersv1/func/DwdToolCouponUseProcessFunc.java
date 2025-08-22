@@ -12,18 +12,24 @@ public class DwdToolCouponUseProcessFunc extends ProcessFunction<String, String>
             JSONObject jsonObject = JSONObject.parseObject(value);
             JSONObject data = jsonObject.getJSONObject("after");
 
-            JSONObject result = new JSONObject();
-            result.put("id", data.getString("id"));
-            result.put("user_id", data.getString("user_id"));
-            result.put("coupon_id", data.getString("coupon_id"));
-            result.put("order_id", data.getString("order_id"));
-            result.put("use_time", data.getString("use_time"));
-            result.put("benefit_amount", data.getString("benefit_amount"));
-            result.put("ts", jsonObject.getLong("ts"));
+            // 只处理已使用的优惠券
+            String couponStatus = data.getString("coupon_status");
+            if ("1402".equals(couponStatus)) { // 假设1402代表已使用状态
 
-            out.collect(result.toJSONString());
+                JSONObject result = new JSONObject();
+                result.put("id", data.getString("id"));
+                result.put("user_id", data.getString("user_id"));
+                result.put("coupon_id", data.getString("coupon_id"));
+                result.put("order_id", data.getString("order_id"));
+//                result.put("use_time", data.getLong("use_time")); // 需要添加use_time字段到数据表中
+//                result.put("benefit_amount", data.getString("benefit_amount")); // 需要添加benefit_amount字段到数据表中
+                result.put("ts", jsonObject.getLong("ts_ms")); // 字段名修正
+
+                out.collect(result.toJSONString());
+            }
         } catch (Exception e) {
             ctx.output(new OutputTag<String>("dirty") {}, value);
         }
     }
 }
+

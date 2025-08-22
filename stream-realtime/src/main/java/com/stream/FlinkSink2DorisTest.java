@@ -59,7 +59,7 @@ public class FlinkSink2DorisTest {
                                 .build()
                 )
                 .setDorisExecutionOptions(DorisExecutionOptions.builder() // 执行参数
-                        .setLabelPrefix("doris_label_"+new Date().getTime())  // stream-load 导入的时候的 label 前缀
+                        .setLabelPrefix("doris_label_"+System.currentTimeMillis())  // stream-load 导入的时候的 label 前缀
                         .disable2PC() // 开启两阶段提交后,labelPrefix 需要全局唯一,为了测试方便禁用两阶段提交
                         .setDeletable(false)
                         .setBufferCount(4) // 用于缓存stream load数据的缓冲条数: 默认 3
