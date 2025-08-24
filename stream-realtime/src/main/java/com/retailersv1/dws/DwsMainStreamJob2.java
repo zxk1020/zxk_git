@@ -1,4 +1,4 @@
-// DwsMainStreamJob.java - 修复字段顺序问题的版本
+// DwsMainStreamJob.java - 修改为写入MySQL版本，数据库名为FlinkDws2Mysql
 package com.retailersv1.dws;
 
 import com.alibaba.fastjson.JSON;
@@ -11,6 +11,7 @@ import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsIni
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessAllWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -19,28 +20,17 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
 import java.math.BigDecimal;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import java.util.Date;
 
-public class DwsMainStreamJob {
-    // 用于存储中间结果的集合
-    private static final Map<String, List<String>> intermediateResults = new ConcurrentHashMap<>();
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
-
-    // 初始化时启动定时任务检查器
-    static {
-        // 每10秒检查一次是否有超时的数据需要发送
-        scheduler.scheduleAtFixedRate(new ResultFlushTask(), 10, 10, TimeUnit.SECONDS);
-    }
+public class DwsMainStreamJob2 {
+    // MySQL配置信息 - 修改数据库名为FlinkDws2Mysql
+    private static final String MYSQL_URL = "jdbc:mysql://192.168.142.130:3306/FlinkDws2Mysql?useSSL=false&serverTimezone=UTC";
+    private static final String MYSQL_USER = "root";
+    private static final String MYSQL_PASSWORD = "root";
 
     public static void main(String[] args) throws Exception {
         System.out.println("🚀 启动 DWS 主流处理作业...");
@@ -52,10 +42,10 @@ public class DwsMainStreamJob {
         System.out.println("🔧 Flink环境配置完成");
 
         // 处理流量域 - 搜索关键词统计
-        processTrafficKeywordData(env);
+//        processTrafficKeywordData(env);
 
         // 处理交易域 - SKU订单统计
-        processTradeSkuOrderData(env);
+//        processTradeSkuOrderData(env);
 
         // 处理用户域 - 用户登录统计
         processUserLoginData(env);
@@ -76,6 +66,9 @@ public class DwsMainStreamJob {
             String bootstrapServers = ConfigUtils.getString("kafka.bootstrap.servers");
             String pageTopic = ConfigUtils.getString("kafka.dwd.page.topic");
 
+            System.out.println(" Kafka Bootstrap Servers: " + bootstrapServers);
+            System.out.println(" Kafka Topic: " + pageTopic);
+
             // 从DWD层读取页面数据 - 添加事件时间水位线
             DataStreamSource<String> pageDs = env.fromSource(
                     KafkaUtils.buildKafkaSource(
@@ -88,38 +81,62 @@ public class DwsMainStreamJob {
                             .withTimestampAssigner((event, timestamp) -> {
                                 try {
                                     JSONObject json = JSON.parseObject(event);
+                                    System.out.println("📥 接收到原始数据: " + event);
                                     Long ts = json.getLong("ts");
+                                    // 处理毫秒级时间戳
                                     long eventTime = ts != null ? ts : System.currentTimeMillis();
+                                    System.out.println("⏱️ 事件时间: " + new Date(eventTime) + ", 时间戳: " + eventTime);
                                     return eventTime;
                                 } catch (Exception e) {
+                                    System.err.println("❌ 解析时间戳失败: " + event);
                                     return System.currentTimeMillis();
                                 }
                             }),
                     "read_dwd_page_for_keyword"
             );
 
+            // 打印原始数据
+            pageDs.print("📄 原始页面数据");
+
             // 解析并过滤包含搜索关键词的数据
             DataStream<JSONObject> keywordDs = pageDs
                     .map(value -> {
                         try {
-                            return JSON.parseObject(value);
+                            JSONObject json = JSON.parseObject(value);
+                            System.out.println("🔄 解析JSON: " + value);
+                            return json;
                         } catch (Exception e) {
+                            System.err.println("❌ JSON解析失败: " + value);
                             return null;
                         }
                     })
                     .filter(json -> {
                         if (json != null) {
-                            // 检查搜索行为: page_id为search且有item字段
+                            // 根据实际数据样例调整过滤条件
+                            // 数据样例：{"page_id":"search","user_id":"3","is_new":"0","during_time":14248,"channel":"oppo","mid":"mid_291","ts":1755535163561}
                             String pageId = json.getString("page_id");
-                            String item = json.getString("item");
-                            return "search".equals(pageId) && item != null && !item.isEmpty();
+                            String userId = json.getString("user_id");
+                            System.out.println("🔍 过滤检查 - page_id: " + pageId + ", user_id: " + userId);
+                            boolean result = "search".equals(pageId) && userId != null && !userId.isEmpty();
+                            if (result) {
+                                System.out.println("✅ 通过过滤的数据: " + json.toJSONString());
+                            }
+                            return result;
                         }
+                        System.out.println("❌ JSON为空，过滤掉");
                         return false;
                     });
 
-            // 按关键词分组并窗口聚合
+            // 打印过滤后的数据
+            keywordDs.print("🔍 过滤后的关键词数据");
+
+            // 按用户ID分组并窗口聚合（因为原始数据中没有item字段，使用userId作为示例）
             DataStream<String> keywordWindowDs = keywordDs
-                    .keyBy(json -> json.getString("item")) // 使用item字段作为关键词
+                    .keyBy(json -> {
+                        String key = json.getString("user_id"); // 使用user_id作为分组键
+                        System.out.println("🔑 分组键: " + key);
+                        return key != null ? key : "unknown";
+                    })
                     .window(TumblingEventTimeWindows.of(Time.minutes(1))) // 1分钟事件时间窗口
                     .allowedLateness(Time.seconds(10)) // 允许10秒延迟数据
                     .aggregate(
@@ -127,13 +144,16 @@ public class DwsMainStreamJob {
                             new KeywordProcessWindowFunction()
                     );
 
-            // 将结果存储到中间集合而不是直接发送到Doris
+            // 添加打印语句显示中间结果
             keywordWindowDs.map(result -> {
-                // 存储到中间集合
-                storeIntermediateResult("keyword", result);
                 System.out.println("🔑 搜索关键词结果: " + result);
                 return result;
             });
+
+            // 直接写入MySQL
+            keywordWindowDs.addSink(new MysqlKeywordSink())
+                    .name("mysql_keyword_sink")
+                    .uid("mysql_keyword_sink_uid");
 
             System.out.println("✅ 流量域搜索关键词处理完成");
 
@@ -155,6 +175,9 @@ public class DwsMainStreamJob {
             String bootstrapServers = ConfigUtils.getString("kafka.bootstrap.servers");
             String orderDetailTopic = ConfigUtils.getString("kafka.dwd.order.detail.topic");
 
+            System.out.println(" Kafka Bootstrap Servers: " + bootstrapServers);
+            System.out.println(" Kafka Order Detail Topic: " + orderDetailTopic);
+
             // 从DWD层读取订单明细数据 - 添加事件时间水位线
             DataStreamSource<String> orderDetailDs = env.fromSource(
                     KafkaUtils.buildKafkaSource(
@@ -167,30 +190,60 @@ public class DwsMainStreamJob {
                             .withTimestampAssigner((event, timestamp) -> {
                                 try {
                                     JSONObject json = JSON.parseObject(event);
+                                    System.out.println("📥 接收到订单明细数据: " + event);
                                     Long ts = json.getLong("ts");
+                                    // 处理毫秒级时间戳
                                     long eventTime = ts != null ? ts : System.currentTimeMillis();
+                                    System.out.println("⏱️ 订单事件时间: " + new Date(eventTime) + ", 时间戳: " + eventTime);
                                     return eventTime;
                                 } catch (Exception e) {
+                                    System.err.println("❌ 解析订单时间戳失败: " + event);
                                     return System.currentTimeMillis();
                                 }
                             }),
                     "read_dwd_order_detail"
             );
 
+            // 打印原始订单数据
+            orderDetailDs.print("📄 原始订单数据");
+
             // 解析订单明细数据
             DataStream<JSONObject> orderDetailJsonDs = orderDetailDs
                     .map(value -> {
                         try {
-                            return JSON.parseObject(value);
+                            JSONObject json = JSON.parseObject(value);
+                            System.out.println("🔄 解析订单JSON: " + value);
+                            return json;
                         } catch (Exception e) {
+                            System.err.println("❌ 订单JSON解析失败: " + value);
                             return null;
                         }
                     })
-                    .filter(json -> json != null && json.getString("sku_id") != null);
+                    .filter(json -> {
+                        if (json != null) {
+                            String skuId = json.getString("sku_id");
+                            String skuName = json.getString("sku_name");
+                            System.out.println("🔍 订单过滤检查 - sku_id: " + skuId + ", sku_name: " + skuName);
+                            boolean result = skuId != null && !skuId.isEmpty() && skuName != null && !skuName.isEmpty();
+                            if (result) {
+                                System.out.println("✅ 通过订单过滤的数据: " + json.toJSONString());
+                            }
+                            return result;
+                        }
+                        System.out.println("❌ 订单JSON为空，过滤掉");
+                        return false;
+                    });
+
+            // 打印过滤后的订单数据
+            orderDetailJsonDs.print("🔍 过滤后的订单数据");
 
             // 按SKU ID分组并窗口聚合
             DataStream<String> skuOrderWindowDs = orderDetailJsonDs
-                    .keyBy(json -> json.getString("sku_id"))
+                    .keyBy(json -> {
+                        String skuId = json.getString("sku_id");
+                        System.out.println("📦 SKU订单分组键: " + skuId);
+                        return skuId != null ? skuId : "unknown";
+                    })
                     .window(TumblingEventTimeWindows.of(Time.minutes(1))) // 1分钟事件时间窗口
                     .allowedLateness(Time.seconds(10)) // 允许10秒延迟数据
                     .aggregate(
@@ -198,13 +251,16 @@ public class DwsMainStreamJob {
                             new SkuOrderProcessWindowFunction()
                     );
 
-            // 将结果存储到中间集合而不是直接发送到Doris
+            // 添加打印语句显示中间结果
             skuOrderWindowDs.map(result -> {
-                // 存储到中间集合
-                storeIntermediateResult("sku_order", result);
                 System.out.println("📦 SKU订单结果: " + result);
                 return result;
             });
+
+            // 直接写入MySQL
+            skuOrderWindowDs.addSink(new MysqlSkuOrderSink())
+                    .name("mysql_sku_order_sink")
+                    .uid("mysql_sku_order_sink_uid");
 
             System.out.println("✅ 交易域SKU订单处理完成");
 
@@ -248,8 +304,11 @@ public class DwsMainStreamJob {
                     "read_dwd_page_for_login"
             );
 
-            // 解析并过滤登录行为数据
-            DataStream<JSONObject> loginDs = pageDs
+            // 打印原始数据以便调试
+            pageDs.print("📄 原始用户页面数据");
+
+            // 解析并识别用户访问行为数据（任何有user_id的页面访问都算作用户活动）
+            DataStream<JSONObject> userActivityDs = pageDs
                     .map(value -> {
                         try {
                             return JSON.parseObject(value);
@@ -259,15 +318,25 @@ public class DwsMainStreamJob {
                     })
                     .filter(json -> {
                         if (json != null) {
-                            // 判断是否为登录行为
+                            String userId = json.getString("user_id");
                             String pageId = json.getString("page_id");
-                            return "login".equals(pageId);
+                            System.out.println("🔍 用户活动检查 - user_id: " + userId + ", page_id: " + pageId);
+
+                            // 任何有有效user_id的页面访问都算作用户活动
+                            boolean result = userId != null && !userId.isEmpty();
+                            if (result) {
+                                System.out.println("✅ 通过用户活动过滤的数据: " + json.toJSONString());
+                            }
+                            return result;
                         }
                         return false;
                     });
 
+            // 打印过滤后的用户活动数据
+            userActivityDs.print("🔍 过滤后的用户活动数据");
+
             // 全局窗口聚合用户登录统计
-            DataStream<String> userLoginWindowDs = loginDs
+            DataStream<String> userLoginWindowDs = userActivityDs
                     .windowAll(TumblingEventTimeWindows.of(Time.minutes(1))) // 1分钟事件时间窗口
                     .allowedLateness(Time.seconds(10)) // 允许10秒延迟数据
                     .aggregate(
@@ -275,241 +344,22 @@ public class DwsMainStreamJob {
                             new UserLoginProcessWindowFunction()
                     );
 
-            // 将结果存储到中间集合而不是直接发送到Doris
+            // 添加打印语句显示中间结果
             userLoginWindowDs.map(result -> {
-                // 存储到中间集合
-                storeIntermediateResult("user_login", result);
-                System.out.println("👤 用户登录结果: " + result);
+                System.out.println("👤 用户活动结果: " + result);
                 return result;
             });
 
-            System.out.println("✅ 用户域登录处理完成");
+            // 直接写入MySQL
+            userLoginWindowDs.addSink(new MysqlUserLoginSink())
+                    .name("mysql_user_login_sink")
+                    .uid("mysql_user_login_sink_uid");
+
+            System.out.println("✅ 用户域处理完成");
 
         } catch (Exception e) {
-            System.err.println("❌ 用户域登录处理异常: " + e.getMessage());
+            System.err.println("❌ 用户域处理异常: " + e.getMessage());
             e.printStackTrace();
-        }
-    }
-
-    // 存储中间结果到集合
-    private static void storeIntermediateResult(String type, String result) {
-        intermediateResults.computeIfAbsent(type, k -> Collections.synchronizedList(new ArrayList<>()))
-                .add(result);
-        System.out.println("💾 存储中间结果 [" + type + "]: " + result);
-    }
-
-    // 定时任务：检查并刷新超时的结果到Doris
-    private static class ResultFlushTask implements Runnable {
-        @Override
-        public void run() {
-            try {
-                System.out.println("⏰ 检查是否有超时数据需要发送到Doris...");
-
-                // 检查每个类型的中间结果
-                for (Map.Entry<String, List<String>> entry : new HashMap<>(intermediateResults).entrySet()) {
-                    String type = entry.getKey();
-                    List<String> results = entry.getValue();
-
-                    if (!results.isEmpty()) {
-                        System.out.println("📤 发现 " + results.size() + " 条 [" + type + "] 类型的超时数据，准备发送到Doris...");
-
-                        // 根据类型确定目标表名
-                        String tableName = getTableNameByType(type);
-
-                        // 批量发送数据到Doris
-                        boolean success = sendBatchToDoris(tableName, new ArrayList<>(results));
-
-                        if (success) {
-                            // 清空已发送的数据
-                            results.clear();
-                            System.out.println("✅ [" + type + "] 类型数据已发送并清空");
-                        } else {
-                            System.err.println("❌ [" + type + "] 类型数据发送失败，保留数据以便重试");
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("❌ 定时发送任务异常: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-
-        private String getTableNameByType(String type) {
-            switch (type) {
-                case "keyword":
-                    return "dws_traffic_source_keyword_page_view_window";
-                case "sku_order":
-                    return "dws_trade_sku_order_window";
-                case "user_login":
-                    return "dws_user_user_login_window";
-                default:
-                    return "unknown_table";
-            }
-        }
-
-        // 批量发送数据到Doris
-        private boolean sendBatchToDoris(String tableName, List<String> results) {
-            if (results.isEmpty()) {
-                return false;
-            }
-
-            try {
-                System.out.println("📨 批量发送 " + results.size() + " 条数据到Doris表: " + tableName);
-
-                // 直接使用Doris HTTP API发送数据
-                return sendToDorisViaHttp(tableName, results);
-
-            } catch (Exception e) {
-                System.err.println("❌ 批量发送到Doris失败: " + e.getMessage());
-                e.printStackTrace();
-                return false;
-            }
-        }
-
-        // 通过HTTP API发送数据到Doris
-        private boolean sendToDorisViaHttp(String tableName, List<String> results) {
-            HttpURLConnection connection = null;
-            try {
-                String fenodes = ConfigUtils.getString("doris.fenodes");
-                String database = ConfigUtils.getString("doris.database");
-                String username = ConfigUtils.getString("doris.username");
-                String password = ConfigUtils.getString("doris.password");
-
-                System.out.println("🌐 通过HTTP API发送数据到Doris: " + database + "." + tableName);
-
-                // 构造正确的Stream Load URL - 使用数据库名和表名分开
-                String streamLoadUrl = "http://" + fenodes + "/api/" + database + "/" + tableName + "/_stream_load";
-                System.out.println("🔗 Stream Load URL: " + streamLoadUrl);
-
-                // 构造批量JSON数据
-                StringBuilder batchData = new StringBuilder();
-                for (int i = 0; i < results.size(); i++) {
-                    if (i > 0) {
-                        batchData.append("\n");
-                    }
-                    batchData.append(results.get(i));
-                }
-
-                System.out.println("📊 发送数据内容预览: " + batchData.toString().substring(0, Math.min(200, batchData.length())) + "...");
-
-                // 创建HTTP连接
-                URL url = new URL(streamLoadUrl);
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("PUT");
-                connection.setDoOutput(true);
-                connection.setDoInput(true);
-                connection.setConnectTimeout(30000); // 30秒连接超时
-                connection.setReadTimeout(30000);    // 30秒读取超时
-
-                // 设置认证信息
-                String auth = username + ":" + password;
-                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-                connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
-
-                // 设置请求头 - 使用JSON格式并设置正确的分隔符
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setRequestProperty("Expect", "100-continue");
-                connection.setRequestProperty("label", "batch_load_" + System.currentTimeMillis());
-                connection.setRequestProperty("format", "json");
-                connection.setRequestProperty("read_json_by_line", "true");
-                connection.setRequestProperty("strip_outer_array", "false");
-                connection.setRequestProperty("max_filter_ratio", "1.0"); // 允许100%的错误数据
-                connection.setRequestProperty("timeout", "60000"); // 增加超时时间
-                connection.setRequestProperty("exec_mem_limit", "2147483648"); // 增加内存限制到2GB
-
-                // 写入数据
-                connection.getOutputStream().write(batchData.toString().getBytes(StandardCharsets.UTF_8));
-
-                // 获取响应
-                int responseCode = connection.getResponseCode();
-                System.out.println("📥 HTTP响应码: " + responseCode);
-
-                // 读取响应内容
-                StringBuilder response = new StringBuilder();
-                try {
-                    if (responseCode == 200) {
-                        try (Scanner scanner = new Scanner(connection.getInputStream(), "UTF-8")) {
-                            while (scanner.hasNext()) {
-                                response.append(scanner.nextLine());
-                            }
-                        }
-                    } else {
-                        try (Scanner scanner = new Scanner(connection.getErrorStream(), "UTF-8")) {
-                            while (scanner.hasNext()) {
-                                response.append(scanner.nextLine());
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("读取响应内容异常: " + e.getMessage());
-                }
-
-                String responseStr = response.toString().trim();
-                System.out.println("📥 HTTP响应内容预览: " + responseStr.substring(0, Math.min(1000, responseStr.length())) + "...");
-
-                if (responseCode == 200) {
-                    // 检查响应是否为JSON格式
-                    if (responseStr.startsWith("{") && responseStr.endsWith("}")) {
-                        try {
-                            JSONObject responseJson = JSON.parseObject(responseStr);
-                            String status = responseJson.getString("Status");
-                            System.out.println("📊 详细导入统计: 总行数=" + responseJson.getLong("NumberTotalRows") +
-                                    ", 导入行数=" + responseJson.getLong("NumberLoadedRows") +
-                                    ", 过滤行数=" + responseJson.getLong("NumberFilteredRows") +
-                                    ", 未选行数=" + responseJson.getLong("NumberUnselectedRows"));
-
-                            // 即使有部分数据被过滤，只要不是完全失败就认为成功
-                            if ("Success".equals(status) || "Publish Timeout".equals(status)) {
-                                long loadedRows = responseJson.getLong("NumberLoadedRows");
-                                long filteredRows = responseJson.getLong("NumberFilteredRows");
-
-                                if (loadedRows > 0) {
-                                    System.out.println("✅ 成功通过HTTP发送数据到Doris: " + database + "." + tableName +
-                                            " (成功导入 " + loadedRows + " 行)");
-                                    return true;
-                                } else if (filteredRows > 0) {
-                                    System.out.println("⚠️ 数据已发送到Doris但全部被过滤，可能原因：");
-                                    System.out.println("⚠️ 1. 数据格式不匹配");
-                                    System.out.println("⚠️ 2. 字段类型不匹配");
-                                    System.out.println("⚠️ 3. 数据超出范围限制");
-                                    System.out.println("⚠️ 4. 聚合键重复导致覆盖");
-                                    System.out.println("⚠️ 查看详细错误信息: " + responseJson.getString("ErrorURL"));
-                                    // 仍然返回true，因为我们已经发送了数据
-                                    return true;
-                                } else {
-                                    System.out.println("⚠️ 没有数据被导入到Doris: " + database + "." + tableName);
-                                    return true;
-                                }
-                            } else {
-                                System.err.println("❌ Doris Stream Load失败，状态: " + status);
-                                System.err.println("❌ 错误信息: " + responseJson.getString("Message"));
-                                return false;
-                            }
-                        } catch (Exception e) {
-                            System.err.println("❌ 解析Doris响应JSON失败: " + e.getMessage());
-                            System.err.println("❌ 响应内容: " + responseStr);
-                            return false;
-                        }
-                    } else {
-                        System.err.println("❌ Doris返回非JSON响应，可能是URL错误或认证失败");
-                        System.err.println("❌ 响应内容预览: " + responseStr.substring(0, Math.min(500, responseStr.length())));
-                        return false;
-                    }
-                } else {
-                    System.err.println("❌ HTTP请求失败，响应码: " + responseCode);
-                    System.err.println("❌ 响应内容: " + responseStr);
-                    return false;
-                }
-
-            } catch (Exception e) {
-                System.err.println("❌ 通过HTTP发送数据到Doris失败: " + e.getMessage());
-                e.printStackTrace();
-                return false;
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
         }
     }
 
@@ -517,26 +367,30 @@ public class DwsMainStreamJob {
     private static class KeywordAggregateFunction implements org.apache.flink.api.common.functions.AggregateFunction<JSONObject, Long, Long> {
         @Override
         public Long createAccumulator() {
+            System.out.println("🆕 创建关键词累加器");
             return 0L;
         }
 
         @Override
         public Long add(JSONObject value, Long accumulator) {
+            System.out.println("➕ 累加关键词计数: " + value.toJSONString());
             return accumulator + 1;
         }
 
         @Override
         public Long getResult(Long accumulator) {
+            System.out.println("📈 获取关键词结果: " + accumulator);
             return accumulator;
         }
 
         @Override
         public Long merge(Long a, Long b) {
+            System.out.println("🔄 合并关键词计数: " + a + " + " + b);
             return a + b;
         }
     }
 
-    // 关键词窗口处理函数 - 严格按照Doris表字段顺序生成JSON
+    // 关键词窗口处理函数 - 严格按照MySQL表字段顺序生成JSON
     private static class KeywordProcessWindowFunction extends ProcessWindowFunction<Long, String, String, TimeWindow> {
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         private final SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -546,15 +400,20 @@ public class DwsMainStreamJob {
             long count = elements.iterator().next();
             TimeWindow window = context.window();
 
-            // 严格按照Doris表字段顺序构建JSON: stt, edt, cur_date, keyword, keyword_count
+            System.out.println("🧮 关键词窗口处理 - 用户ID: " + key + ", 计数: " + count);
+            System.out.println("🕐 窗口开始时间: " + new Date(window.getStart()));
+            System.out.println("🕐 窗口结束时间: " + new Date(window.getEnd()));
+
+            // 严格按照MySQL表字段顺序构建JSON: stt, edt, cur_date, keyword, keyword_count
             JSONObject result = new JSONObject();
             result.put("stt", datetimeFormat.format(new Date(window.getStart())));
             result.put("edt", datetimeFormat.format(new Date(window.getEnd())));
             result.put("cur_date", dateFormat.format(new Date(window.getStart())));
-            result.put("keyword", key);
+            result.put("keyword", key); // 使用用户ID作为关键词示例
             result.put("keyword_count", count);
 
             String output = result.toJSONString();
+            System.out.println("📤 关键词窗口结果输出: " + output);
             out.collect(output);
         }
     }
@@ -582,11 +441,13 @@ public class DwsMainStreamJob {
             acc.put("coupon_reduce_amount", BigDecimal.ZERO);
             acc.put("order_amount", BigDecimal.ZERO);
             acc.put("sku_name", "");
+            System.out.println("🆕 创建SKU订单累加器");
             return acc;
         }
 
         @Override
         public JSONObject add(JSONObject value, JSONObject accumulator) {
+            System.out.println("➕ 累加SKU订单数据: " + value.toJSONString());
             String skuName = value.getString("sku_name");
 
             // 累积SKU名称（取第一个）
@@ -594,7 +455,7 @@ public class DwsMainStreamJob {
                 accumulator.put("sku_name", skuName);
             }
 
-            // 累积金额字段
+            // 累积金额字段 - 根据实际数据样例调整字段名
             BigDecimal originalAmount = safeBigDecimal(accumulator.getString("original_amount"))
                     .add(safeBigDecimal(value.getString("split_original_amount")));
             BigDecimal activityAmount = safeBigDecimal(accumulator.getString("activity_reduce_amount"))
@@ -602,7 +463,7 @@ public class DwsMainStreamJob {
             BigDecimal couponAmount = safeBigDecimal(accumulator.getString("coupon_reduce_amount"))
                     .add(safeBigDecimal(value.getString("split_coupon_amount")));
             BigDecimal orderAmount = safeBigDecimal(accumulator.getString("order_amount"))
-                    .add(safeBigDecimal(value.getString("split_total_amount")));
+                    .add(safeBigDecimal(value.getString("split_original_amount"))); // 使用原始金额作为订单金额
 
             accumulator.put("original_amount", originalAmount);
             accumulator.put("activity_reduce_amount", activityAmount);
@@ -614,11 +475,13 @@ public class DwsMainStreamJob {
 
         @Override
         public JSONObject getResult(JSONObject accumulator) {
+            System.out.println("📈 获取SKU订单结果: " + accumulator.toJSONString());
             return accumulator;
         }
 
         @Override
         public JSONObject merge(JSONObject a, JSONObject b) {
+            System.out.println("🔄 合并SKU订单数据");
             JSONObject merged = new JSONObject();
             merged.put("sku_name", a.getString("sku_name") != null && !a.getString("sku_name").isEmpty() ?
                     a.getString("sku_name") : b.getString("sku_name"));
@@ -641,7 +504,7 @@ public class DwsMainStreamJob {
         }
     }
 
-    // SKU订单窗口处理函数 - 严格按照Doris表字段顺序生成JSON
+    // SKU订单窗口处理函数 - 严格按照MySQL表字段顺序生成JSON
     private static class SkuOrderProcessWindowFunction extends ProcessWindowFunction<JSONObject, String, String, TimeWindow> {
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         private final SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -651,7 +514,11 @@ public class DwsMainStreamJob {
             JSONObject aggData = elements.iterator().next();
             TimeWindow window = context.window();
 
-            // 严格按照Doris表字段顺序构建JSON: stt, edt, cur_date, sku_id, sku_name, original_amount, activity_reduce_amount, coupon_reduce_amount, order_amount
+            System.out.println("🧮 SKU订单窗口处理 - SKU ID: " + key);
+            System.out.println("🕐 窗口开始时间: " + new Date(window.getStart()));
+            System.out.println("🕐 窗口结束时间: " + new Date(window.getEnd()));
+
+            // 严格按照MySQL表字段顺序构建JSON: stt, edt, cur_date, sku_id, sku_name, original_amount, activity_reduce_amount, coupon_reduce_amount, order_amount
             JSONObject result = new JSONObject();
             result.put("stt", datetimeFormat.format(new Date(window.getStart())));
             result.put("edt", datetimeFormat.format(new Date(window.getEnd())));
@@ -704,33 +571,24 @@ public class DwsMainStreamJob {
     private static class UserLoginAggregateFunction implements org.apache.flink.api.common.functions.AggregateFunction<JSONObject, Tuple2<Set<String>, Set<String>>, Tuple2<Integer, Integer>> {
         @Override
         public Tuple2<Set<String>, Set<String>> createAccumulator() {
+            System.out.println("🆕 创建用户活动累加器");
             return new Tuple2<>(new HashSet<>(), new HashSet<>());
         }
 
         @Override
         public Tuple2<Set<String>, Set<String>> add(JSONObject value, Tuple2<Set<String>, Set<String>> accumulator) {
-            // 首先尝试从common字段获取
-            JSONObject common = value.getJSONObject("common");
-            if (common != null) {
-                String userId = common.getString("user_id");
-                String isNew = common.getString("is_new");
+            System.out.println("➕ 累加用户活动数据: " + value.toJSONString());
 
-                if (userId != null) {
-                    accumulator.f0.add(userId);
-                    if ("0".equals(isNew)) {
-                        accumulator.f1.add(userId);
-                    }
-                }
-            } else {
-                // 如果没有common字段，直接从根级获取
-                String userId = value.getString("user_id");
-                String isNew = value.getString("is_new");
+            // 获取用户信息
+            String userId = value.getString("user_id");
+            String isNew = value.getString("is_new");
 
-                if (userId != null) {
-                    accumulator.f0.add(userId);
-                    if ("0".equals(isNew)) {
-                        accumulator.f1.add(userId);
-                    }
+            if (userId != null) {
+                // 累积所有用户
+                accumulator.f0.add(userId);
+                // 累积回流用户（老用户）
+                if ("0".equals(isNew)) {
+                    accumulator.f1.add(userId);
                 }
             }
             return accumulator;
@@ -738,11 +596,14 @@ public class DwsMainStreamJob {
 
         @Override
         public Tuple2<Integer, Integer> getResult(Tuple2<Set<String>, Set<String>> accumulator) {
+            System.out.println("📈 获取用户活动结果 - 回流用户数: " + accumulator.f1.size() + ", 独立用户数: " + accumulator.f0.size());
+            // f1 = 回流用户数, f0 = 独立用户数
             return new Tuple2<>(accumulator.f1.size(), accumulator.f0.size());
         }
 
         @Override
         public Tuple2<Set<String>, Set<String>> merge(Tuple2<Set<String>, Set<String>> a, Tuple2<Set<String>, Set<String>> b) {
+            System.out.println("🔄 合并用户活动数据");
             Set<String> allUsers = new HashSet<>(a.f0);
             allUsers.addAll(b.f0);
 
@@ -753,7 +614,7 @@ public class DwsMainStreamJob {
         }
     }
 
-    // 用户登录窗口处理函数 - 严格按照Doris表字段顺序生成JSON
+    // 用户登录窗口处理函数 - 严格按照MySQL表字段顺序生成JSON
     private static class UserLoginProcessWindowFunction extends ProcessAllWindowFunction<Tuple2<Integer, Integer>, String, TimeWindow> {
         private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         private final SimpleDateFormat datetimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -763,7 +624,11 @@ public class DwsMainStreamJob {
             Tuple2<Integer, Integer> stats = elements.iterator().next();
             TimeWindow window = context.window();
 
-            // 严格按照Doris表字段顺序构建JSON: stt, edt, cur_date, back_ct, uu_ct
+            System.out.println("🧮 用户登录窗口处理");
+            System.out.println("🕐 窗口开始时间: " + new Date(window.getStart()));
+            System.out.println("🕐 窗口结束时间: " + new Date(window.getEnd()));
+
+            // 严格按照MySQL表字段顺序构建JSON: stt, edt, cur_date, back_ct, uu_ct
             JSONObject result = new JSONObject();
             result.put("stt", datetimeFormat.format(new Date(window.getStart())));
             result.put("edt", datetimeFormat.format(new Date(window.getEnd())));
@@ -774,6 +639,169 @@ public class DwsMainStreamJob {
             String output = result.toJSONString();
             System.out.println("📤 用户登录窗口结果: " + output);
             out.collect(output);
+        }
+    }
+
+    // MySQL Sink for Keyword Data
+    private static class MysqlKeywordSink extends RichSinkFunction<String> {
+        private Connection connection;
+        private PreparedStatement preparedStatement;
+
+        @Override
+        public void open(org.apache.flink.configuration.Configuration parameters) throws Exception {
+            super.open(parameters);
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD);
+                System.out.println("✅ MySQL连接成功: " + MYSQL_URL);
+                String sql = "INSERT INTO dws_traffic_source_keyword_page_view_window (stt, edt, cur_date, keyword, keyword_count) VALUES (?, ?, ?, ?, ?)";
+                preparedStatement = connection.prepareStatement(sql);
+                System.out.println("✅ MySQL PreparedStatement创建成功");
+            } catch (Exception e) {
+                System.err.println("❌ MySQL连接失败: " + e.getMessage());
+                throw e;
+            }
+        }
+
+        @Override
+        public void invoke(String value, Context context) throws Exception {
+            try {
+                System.out.println("💾 尝试写入MySQL关键词数据: " + value);
+                JSONObject jsonObject = JSON.parseObject(value);
+                preparedStatement.setString(1, jsonObject.getString("stt"));
+                preparedStatement.setString(2, jsonObject.getString("edt"));
+                preparedStatement.setString(3, jsonObject.getString("cur_date"));
+                preparedStatement.setString(4, jsonObject.getString("keyword"));
+                preparedStatement.setLong(5, jsonObject.getLongValue("keyword_count"));
+                int result = preparedStatement.executeUpdate();
+                System.out.println("✅ MySQL写入成功，影响行数: " + result);
+            } catch (Exception e) {
+                System.err.println("❌ MySQL写入失败: " + e.getMessage());
+                System.err.println("📝 失败数据: " + value);
+                throw e;
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (preparedStatement != null) {
+                preparedStatement.close();
+                System.out.println("✅ PreparedStatement关闭成功");
+            }
+            if (connection != null) {
+                connection.close();
+                System.out.println("✅ MySQL连接关闭成功");
+            }
+        }
+    }
+
+    // MySQL Sink for SKU Order Data
+    private static class MysqlSkuOrderSink extends RichSinkFunction<String> {
+        private Connection connection;
+        private PreparedStatement preparedStatement;
+
+        @Override
+        public void open(org.apache.flink.configuration.Configuration parameters) throws Exception {
+            super.open(parameters);
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD);
+                System.out.println("✅ MySQL订单连接成功: " + MYSQL_URL);
+                String sql = "INSERT INTO dws_trade_sku_order_window (stt, edt, cur_date, sku_id, sku_name, original_amount, activity_reduce_amount, coupon_reduce_amount, order_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                preparedStatement = connection.prepareStatement(sql);
+                System.out.println("✅ MySQL订单PreparedStatement创建成功");
+            } catch (Exception e) {
+                System.err.println("❌ MySQL订单连接失败: " + e.getMessage());
+                throw e;
+            }
+        }
+
+        @Override
+        public void invoke(String value, Context context) throws Exception {
+            try {
+                System.out.println("💾 尝试写入MySQL SKU订单数据: " + value);
+                JSONObject jsonObject = JSON.parseObject(value);
+                preparedStatement.setString(1, jsonObject.getString("stt"));
+                preparedStatement.setString(2, jsonObject.getString("edt"));
+                preparedStatement.setString(3, jsonObject.getString("cur_date"));
+                preparedStatement.setObject(4, jsonObject.get("sku_id")); // 处理可能的字符串类型
+                preparedStatement.setString(5, jsonObject.getString("sku_name"));
+                preparedStatement.setBigDecimal(6, jsonObject.getBigDecimal("original_amount"));
+                preparedStatement.setBigDecimal(7, jsonObject.getBigDecimal("activity_reduce_amount"));
+                preparedStatement.setBigDecimal(8, jsonObject.getBigDecimal("coupon_reduce_amount"));
+                preparedStatement.setBigDecimal(9, jsonObject.getBigDecimal("order_amount"));
+                int result = preparedStatement.executeUpdate();
+                System.out.println("✅ MySQL订单写入成功，影响行数: " + result);
+            } catch (Exception e) {
+                System.err.println("❌ MySQL订单写入失败: " + e.getMessage());
+                System.err.println("📝 失败数据: " + value);
+                throw e;
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (preparedStatement != null) {
+                preparedStatement.close();
+                System.out.println("✅ 订单PreparedStatement关闭成功");
+            }
+            if (connection != null) {
+                connection.close();
+                System.out.println("✅ MySQL订单连接关闭成功");
+            }
+        }
+    }
+
+    // MySQL Sink for User Login Data
+    private static class MysqlUserLoginSink extends RichSinkFunction<String> {
+        private Connection connection;
+        private PreparedStatement preparedStatement;
+
+        @Override
+        public void open(org.apache.flink.configuration.Configuration parameters) throws Exception {
+            super.open(parameters);
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(MYSQL_URL, MYSQL_USER, MYSQL_PASSWORD);
+                System.out.println("✅ MySQL用户登录连接成功: " + MYSQL_URL);
+                String sql = "INSERT INTO dws_user_user_login_window (stt, edt, cur_date, back_ct, uu_ct) VALUES (?, ?, ?, ?, ?)";
+                preparedStatement = connection.prepareStatement(sql);
+                System.out.println("✅ MySQL用户登录PreparedStatement创建成功");
+            } catch (Exception e) {
+                System.err.println("❌ MySQL用户登录连接失败: " + e.getMessage());
+                throw e;
+            }
+        }
+
+        @Override
+        public void invoke(String value, Context context) throws Exception {
+            try {
+                System.out.println("💾 尝试写入MySQL用户登录数据: " + value);
+                JSONObject jsonObject = JSON.parseObject(value);
+                preparedStatement.setString(1, jsonObject.getString("stt"));
+                preparedStatement.setString(2, jsonObject.getString("edt"));
+                preparedStatement.setString(3, jsonObject.getString("cur_date"));
+                preparedStatement.setLong(4, jsonObject.getLongValue("back_ct"));
+                preparedStatement.setLong(5, jsonObject.getLongValue("uu_ct"));
+                int result = preparedStatement.executeUpdate();
+                System.out.println("✅ MySQL用户登录写入成功，影响行数: " + result);
+            } catch (Exception e) {
+                System.err.println("❌ MySQL用户登录写入失败: " + e.getMessage());
+                System.err.println("📝 失败数据: " + value);
+                throw e;
+            }
+        }
+
+        @Override
+        public void close() throws Exception {
+            if (preparedStatement != null) {
+                preparedStatement.close();
+                System.out.println("✅ 用户登录PreparedStatement关闭成功");
+            }
+            if (connection != null) {
+                connection.close();
+                System.out.println("✅ MySQL用户登录连接关闭成功");
+            }
         }
     }
 }
