@@ -20,6 +20,7 @@ import java.util.Set;
 /**
  * DWD层数据处理主类
  * 负责从Kafka读取ODS层数据，清洗并关联维度信息，输出到DWD层Kafka主题
+ * @author hp
  */
 public class DbusCdc2DwdKafka {
 

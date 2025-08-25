@@ -26,6 +26,9 @@ import java.time.Duration;
 import java.util.*;
 import java.util.Date;
 
+/**
+ * @author hp
+ */
 public class DwsMainStreamJob2 {
     // MySQL配置信息 - 修改数据库名为FlinkDws2Mysql
     private static final String MYSQL_URL = "jdbc:mysql://192.168.142.130:3306/FlinkDws2Mysql?useSSL=false&serverTimezone=UTC";

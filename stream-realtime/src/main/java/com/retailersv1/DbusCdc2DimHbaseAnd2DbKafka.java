@@ -23,7 +23,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
  * @Package com.retailersv1.DbusCdc2DimHbaseAnd2DbKafka
- * @Author zhou.han
+ * @Author hp
  * @Date 2024/12/12 12:56
  * @description: mysql db cdc to kafka realtime_db topic Task-01
  */
@@ -32,6 +32,7 @@ public class DbusCdc2DimHbaseAnd2DbKafka {
     private static final String CDH_ZOOKEEPER_SERVER = ConfigUtils.getString("zookeeper.server.host.list");
     private static final String CDH_KAFKA_SERVER = ConfigUtils.getString("kafka.bootstrap.servers");
     private static final String CDH_HBASE_NAME_SPACE = ConfigUtils.getString("hbase.namespace");
+    // 命名空间
     private static final String MYSQL_CDC_TO_KAFKA_TOPIC = ConfigUtils.getString("kafka.cdc.db.topic");
 
     @SneakyThrows
