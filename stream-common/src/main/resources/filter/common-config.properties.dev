@@ -62,3 +62,14 @@ hbase.namespace=map_create_hbase_dim_0814
 holo.endpoint=
 ali.key=
 ali.pwd=
+
+
+# FlinkGd03  Flink 工单03项目
+# FlinkGd03 Ods
+FlinkGd03.ods.all.data.topic=FlinkGd03_ods_all_data
+kafka.ods.user.visit.log.topic=FlinkGd03_ods_user_visit_log
+kafka.ods.product.interaction.log.topic=FlinkGd03_ods_product_interaction_log
+kafka.ods.order.pay.log.topic=FlinkGd03_ods_order_pay_log
+kafka.ods.search.log.topic=FlinkGd03_ods_search_log
+kafka.ods.page.click.log.topic=FlinkGd03_ods_page_click_log
+kafka.ods.crowd.attribute.log.topic=FlinkGd03_ods_crowd_attribute_log

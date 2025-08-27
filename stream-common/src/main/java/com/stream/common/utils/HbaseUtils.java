@@ -26,6 +26,36 @@ public class HbaseUtils {
     private Connection connection;
     private static final Logger LOG = LoggerFactory.getLogger(HbaseUtils.class.getName());
 
+    public void initGd03DimTables() throws IOException {
+        String namespace = "FlinkGd03";
+
+        // 创建命名空间
+        createNamespace(namespace);
+
+        // 创建各个DIM表
+        createDimTable(namespace, "dim_product");
+        createDimTable(namespace, "dim_page");
+        createDimTable(namespace, "dim_traffic_source");
+        createDimTable(namespace, "dim_city");
+        createDimTable(namespace, "dim_taoqi_level");
+    }
+
+    /**
+     * 创建单个DIM表
+     */
+    private void createDimTable(String namespace, String tableName) {
+        try {
+            if (!tableIsExists(namespace + ":" + tableName)) {
+                createTable(namespace, tableName, "info");
+                LOG.info("成功创建DIM表: {}:{}", namespace, tableName);
+            } else {
+                LOG.info("DIM表已存在: {}:{}", namespace, tableName);
+            }
+        } catch (Exception e) {
+            LOG.error("创建DIM表失败: " + tableName, e);
+        }
+    }
+
     public HbaseUtils(String zookeeper_quorum) throws Exception {
         org.apache.hadoop.conf.Configuration entries = HBaseConfiguration.create();
         entries.set(HConstants.ZOOKEEPER_QUORUM, zookeeper_quorum);
@@ -225,13 +255,15 @@ public class HbaseUtils {
     public static void main(String[] args) {
         System.setProperty("HADOOP_USER_NAME","root");
         HbaseUtils hbaseUtils = new HbaseUtils("cdh01,cdh02,cdh03");
-        hbaseUtils.dropHbaseNameSpace("GMALL_FLINK_2207");
+//        hbaseUtils.dropHbaseNameSpace("GMALL_FLINK_2207");
 //        System.err.println(hbaseUtils.tableIsExists("realtime_v2:dim_user_info"));
 //        hbaseUtils.deleteTable("ns_zxn:dim_base_category1");
+        hbaseUtils.initGd03DimTables();
 //        hbaseUtils.getHbaseNameSpaceAllTablesList("realtime_v2");
 //        hbaseUtils.createNamespace("map_create_hbase_dim_0814");
 //        hbaseUtils.createTable("ns_zxn","aa_0818");
 //        hbaseUtils.tableIsExists("ns_zxn:aa_0818");
 //        hbaseUtils.getHbaseNameSpaceAllTablesList("ns_zxn");
+
     }
 }
