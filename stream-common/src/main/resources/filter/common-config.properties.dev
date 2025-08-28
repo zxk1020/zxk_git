@@ -73,3 +73,19 @@ kafka.ods.order.pay.log.topic=FlinkGd03_ods_order_pay_log
 kafka.ods.search.log.topic=FlinkGd03_ods_search_log
 kafka.ods.page.click.log.topic=FlinkGd03_ods_page_click_log
 kafka.ods.crowd.attribute.log.topic=FlinkGd03_ods_crowd_attribute_log
+# FlinkGd03 dwd
+kafka.dwd.user.visit.log.topic=FlinkGd03_dwd_user_visit_detail
+kafka.dwd.product.interaction.log.topic=FlinkGd03_dwd_product_interaction_detail
+kafka.dwd.order.pay.log.topic=FlinkGd03_dwd_pay_detail
+kafka.dwd.search.log.topic=FlinkGd03_dwd_search_detail
+kafka.dwd.page.click.log.topic=FlinkGd03_dwd_page_click_detail
+kafka.dwd.crowd.attribute.log.topic=FlinkGd03_dwd_crowd_attribute_detail
+# FlinkGd03 dws
+
+111
+kafka.dws.user.visit.log.topic=FlinkGd03_dws_traffic_overview
+kafka.dws.product.interaction.log.topic=FlinkGd03_dws_traffic_source_ranking
+kafka.dws.order.pay.log.topic=FlinkGd03_dws_keyword_ranking
+kafka.dws.search.log.topic=FlinkGd03_dws_product_traffic
+kafka.dws.page.click.log.topic=FlinkGd03_dws_page_traffic
+kafka.dws.crowd.attribute.log.topic=FlinkGd03_dws_crowd_feature

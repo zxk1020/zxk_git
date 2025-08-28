@@ -1,9 +1,10 @@
 package com.flinkgd03.dim;
 
+
 import com.alibaba.fastjson.JSONObject;
+import com.stream.utils.CdcSourceUtils;
 import com.stream.common.utils.ConfigUtils;
 import com.stream.common.utils.HbaseUtils;
-import com.stream.utils.CdcSourceUtils;
 import com.ververica.cdc.connectors.mysql.source.MySqlSource;
 import com.ververica.cdc.connectors.mysql.table.StartupOptions;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -16,11 +17,22 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.util.Bytes;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * 将DIM层数据同步到HBase
+ * 将DIM层数据同步到HBase（解决server-id冲突问题）
  */
 public class Gd03Dim2Hbase {
+
+    // 为每个表分配唯一的server-id（确保全局唯一，不与MySQL主节点和其他同步工具冲突）
+    private static final Map<String, Integer> TABLE_SERVER_ID_MAP = new HashMap<String, Integer>() {{
+        put("dim_product", 1001);       // 产品表专用server-id
+        put("dim_page", 1002);          // 页面表专用server-id
+        put("dim_traffic_source", 1003);// 流量来源表专用server-id
+        put("dim_city", 1004);          // 城市表专用server-id
+        put("dim_taoqi_level", 1005);   // 淘气等级表专用server-id
+    }};
 
     public static void main(String[] args) throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
@@ -32,9 +44,9 @@ public class Gd03Dim2Hbase {
         HbaseUtils hbaseUtils = new HbaseUtils(ConfigUtils.getString("zookeeper.server.host.list"));
         hbaseUtils.initGd03DimTables();
 
-        String database = ConfigUtils.getString("mysql.databases.conf"); // 使用配置中的数据库名
+        String database = ConfigUtils.getString("mysql.databases.conf");
 
-        // 同步各个DIM表数据到HBase
+        // 同步各个DIM表数据到HBase（传入每个表唯一的server-id）
         syncDimTable(env, database, "product", "dim_product", "product_id");
         syncDimTable(env, database, "page", "dim_page", "page_id");
         syncDimTable(env, database, "traffic_source", "dim_traffic_source", "source_id");
@@ -45,18 +57,36 @@ public class Gd03Dim2Hbase {
     }
 
     /**
-     * 同步单个DIM表到HBase
+     * 同步单个DIM表到HBase（为每个表设置唯一server-id）
      */
     private static void syncDimTable(StreamExecutionEnvironment env, String database,
                                      String sourceTableName, String dimTableName, String rowKeyField) throws Exception {
-        MySqlSource<String> source = CdcSourceUtils.getMySQLCdcSource(
-                database,
-                database + "." + sourceTableName,  // 使用实际的源表名
-                ConfigUtils.getString("mysql.user"),
-                ConfigUtils.getString("mysql.pwd"),
-                "6000-7000",
-                StartupOptions.earliest()
-        );
+        // 获取当前表对应的唯一server-id
+        Integer serverId = TABLE_SERVER_ID_MAP.get(dimTableName);
+        if (serverId == null) {
+            throw new RuntimeException("未为表" + dimTableName + "配置唯一的server-id，请检查TABLE_SERVER_ID_MAP");
+        }
+
+        // 创建Debezium配置，设置唯一server-id
+        Map<String, String> debeziumProps = new HashMap<>();
+        debeziumProps.put("database.server.id", serverId.toString());
+        // 设置独立的offset存储路径，避免不同表共享offset导致冲突
+        debeziumProps.put("offset.storage.file.filename",
+                "/tmp/flink-cdc-offset-" + dimTableName + "-" + serverId + ".dat");
+        // 可选：设置server-uuid增强唯一性
+        debeziumProps.put("database.server.uuid", "flink-cdc-" + dimTableName + "-" + serverId);
+
+        // 创建带唯一server-id配置的CDC源
+        MySqlSource<String> source = MySqlSource.<String>builder()
+                .hostname(ConfigUtils.getString("mysql.host"))  // 补充MySQL主机配置
+                .port(Integer.parseInt(ConfigUtils.getString("mysql.port")))  // 补充端口配置
+                .username(ConfigUtils.getString("mysql.user"))
+                .password(ConfigUtils.getString("mysql.pwd"))
+                .databaseList(database)
+                .tableList(database + "." + sourceTableName)
+                .startupOptions(StartupOptions.earliest())
+                .deserializer(new com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema())
+                .build();
 
         DataStreamSource<String> stream = env.fromSource(source,
                 WatermarkStrategy.noWatermarks(),

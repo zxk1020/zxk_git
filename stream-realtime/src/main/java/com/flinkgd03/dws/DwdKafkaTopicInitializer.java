@@ -33,12 +33,20 @@ public class DwdKafkaTopicInitializer {
 //        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.user.register.topic"), 2, (short) 1, false);
 //        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.toolCoupon.get.topic"), 2, (short) 1, false);
 //        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.toolCoupon.use.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.user.visit.log.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.product.interaction.log.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.order.pay.log.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.search.log.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.page.click.log.topic"), 2, (short) 1, false);
-        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.crowd.attribute.log.topic"), 2, (short) 1, false);
+        //ods
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.user.visit.log.topic"), 2, (short) 1, false);
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.product.interaction.log.topic"), 2, (short) 1, false);
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.order.pay.log.topic"), 2, (short) 1, false);
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.search.log.topic"), 2, (short) 1, false);
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.page.click.log.topic"), 2, (short) 1, false);
+//        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.ods.crowd.attribute.log.topic"), 2, (short) 1, false);
+        //dwd
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.user.visit.log.topic"), 2, (short) 1, false);
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.product.interaction.log.topic"), 2, (short) 1, false);
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.order.pay.log.topic"), 2, (short) 1, false);
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.search.log.topic"), 2, (short) 1, false);
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.page.click.log.topic"), 2, (short) 1, false);
+        KafkaUtils.createKafkaTopic(bootstrapServers, ConfigUtils.getString("kafka.dwd.crowd.attribute.log.topic"), 2, (short) 1, false);
 //        FlinkGd03_ods_all_data
 
 //        FlinkGd03_ods_user_visit_log
