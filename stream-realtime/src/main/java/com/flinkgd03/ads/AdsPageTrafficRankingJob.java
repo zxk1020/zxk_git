@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.stream.common.utils.KafkaUtils;
 import com.stream.common.utils.ConfigUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -54,9 +55,21 @@ public class AdsPageTrafficRankingJob {
                         "ads_page_traffic_ranking_group_" + System.currentTimeMillis(),
                         OffsetsInitializer.earliest()
                 ),
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.<String>forMonotonousTimestamps()
+                        .withTimestampAssigner((element, recordTimestamp) -> {
+                            try {
+                                JSONObject json = JSON.parseObject(element);
+                                long timestamp = json.getLong("stat_time");
+                                System.out.println("⏱️ 提取时间戳: " + timestamp + " for element: " + element);
+                                return timestamp;
+                            } catch (Exception e) {
+                                System.err.println("❌ 时间戳提取失败: " + element);
+                                return System.currentTimeMillis();
+                            }
+                        }),
                 "read_dws_page_traffic"
         );
+
 
         // 打印原始数据
         dwsDataStream.print("📥 原始DWS页面流量数据");
@@ -75,14 +88,21 @@ public class AdsPageTrafficRankingJob {
 
         // 按统计维度分组并计算TOP10
         DataStream<String> resultStream = jsonDataStream
-                .keyBy(json -> Tuple4.of(
-                        json.getLong("stat_time"),
-                        json.getString("terminal_type"),
-                        json.getLong("shop_id"),
-                        "dummy" // 占位符，因为我们需要对整个窗口进行排序
-                ))
+                .keyBy(new KeySelector<JSONObject, Tuple4<Long, String, Long, String>>() {
+                    @Override
+                    public Tuple4<Long, String, Long, String> getKey(JSONObject json) throws Exception {
+                        return Tuple4.of(
+                                json.getLong("stat_time"),
+                                json.getString("terminal_type"),
+                                json.getLong("shop_id"),
+                                "dummy" // 占位符，因为我们需要对整个窗口进行排序
+                        );
+                    }
+                })
                 .window(TumblingEventTimeWindows.of(Time.minutes(1)))
                 .process(new PageTrafficRankingProcessWindowFunction());
+
+
 
         // 打印处理结果
         resultStream.print("📊 页面流量排行结果");
@@ -109,10 +129,19 @@ public class AdsPageTrafficRankingJob {
                 Iterable<JSONObject> elements,
                 Collector<String> out) throws Exception {
 
+            System.out.println("🧮 开始处理页面流量排行窗口数据 - Key: " + key + ", 窗口时间范围: " +
+                    new java.util.Date(context.window().getStart()) + " - " +
+                    new java.util.Date(context.window().getEnd()));
+
             List<JSONObject> dataList = new ArrayList<>();
+            int elementCount = 0;
             for (JSONObject element : elements) {
+                elementCount++;
+                System.out.println("📊 处理第" + elementCount + "个元素: " + element.toJSONString());
                 dataList.add(element);
             }
+
+            System.out.println("📋 窗口内总共 " + elementCount + " 个元素");
 
             // 按访客数降序排序
             dataList.sort((o1, o2) -> {
@@ -121,19 +150,30 @@ public class AdsPageTrafficRankingJob {
                 return Long.compare(visitorCount2, visitorCount1);
             });
 
+            System.out.println("⬇️ 排序后数据:");
+            for (int i = 0; i < dataList.size(); i++) {
+                System.out.println("  " + (i+1) + ". " + dataList.get(i).toJSONString());
+            }
+
             // 取前10名
             int rank = 1;
+            System.out.println("🏅 开始排名处理:");
             for (JSONObject data : dataList) {
                 if (rank > 10) {
+                    System.out.println("🛑 已达到TOP10限制，停止处理");
                     break;
                 }
 
                 // 添加排名
                 data.put("rank_num", rank);
+                System.out.println("🏅 排名 #" + rank + " 数据: " + data.toJSONString());
                 out.collect(data.toJSONString());
                 rank++;
             }
+
+            System.out.println("🏁 页面流量排行窗口处理完成 - Key: " + key + ", 总共输出 " + (rank-1) + " 条数据");
         }
+
     }
 
     /**
@@ -205,6 +245,7 @@ public class AdsPageTrafficRankingJob {
             }
         }
 
+
         @Override
         public void invoke(String value, Context context) throws Exception {
             try {
@@ -240,7 +281,13 @@ public class AdsPageTrafficRankingJob {
                         "shop_id=" + shopId + ", " +
                         "page_id=" + pageId + ", " +
                         "visitor_count=" + visitorCount + ", " +
-                        "rank_num=" + rankNum);
+                        "rank_num=" + rankNum + ", " +
+                        "page_view=" + pageView + ", " +
+                        "click_count=" + clickCount + ", " +
+                        "avg_stay_time=" + avgStayTime + ", " +
+                        "module_click_json=" + moduleClickJson + ", " +
+                        "guide_product_json=" + guideProductJson + ", " +
+                        "trend_data_json=" + trendDataJson);
 
                 // 设置参数
                 upsertPreparedStatement.setString(1, statTimeString);
@@ -263,6 +310,7 @@ public class AdsPageTrafficRankingJob {
             } catch (Exception e) {
                 System.err.println("❌ MySQL写入失败: " + e.getMessage());
                 System.err.println("📝 失败数据: " + value);
+                e.printStackTrace(); // 添加完整的异常堆栈信息
                 throw e;
             }
         }

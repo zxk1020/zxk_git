@@ -46,9 +46,21 @@ public class AdsCrowdFeatureJob {
                         "ads_crowd_feature_group_" + System.currentTimeMillis(),
                         OffsetsInitializer.earliest()
                 ),
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.<String>forMonotonousTimestamps()
+                        .withTimestampAssigner((element, recordTimestamp) -> {
+                            try {
+                                JSONObject json = JSON.parseObject(element);
+                                long timestamp = json.getLong("stat_time");
+                                System.out.println("⏱️ 提取时间戳: " + timestamp + " for element: " + element);
+                                return timestamp;
+                            } catch (Exception e) {
+                                System.err.println("❌ 时间戳提取失败: " + element);
+                                return System.currentTimeMillis();
+                            }
+                        }),
                 "read_dws_crowd_feature"
         );
+
 
         // 打印原始数据
         dwsDataStream.print("📥 原始DWS人群特征数据");
@@ -187,6 +199,7 @@ public class AdsCrowdFeatureJob {
             } catch (Exception e) {
                 System.err.println("❌ MySQL写入失败: " + e.getMessage());
                 System.err.println("📝 失败数据: " + value);
+                e.printStackTrace(); // 添加完整的异常堆栈信息
                 throw e;
             }
         }

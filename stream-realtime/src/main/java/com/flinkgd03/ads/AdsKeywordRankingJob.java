@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.stream.common.utils.KafkaUtils;
 import com.stream.common.utils.ConfigUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple5;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -53,9 +54,22 @@ public class AdsKeywordRankingJob {
                         "ads_keyword_ranking_group_" + System.currentTimeMillis(),
                         OffsetsInitializer.earliest()
                 ),
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.<String>forMonotonousTimestamps()
+                        .withTimestampAssigner((element, recordTimestamp) -> {
+                            try {
+                                JSONObject json = JSON.parseObject(element);
+                                // stat_time 是秒级时间戳，需要转换为毫秒
+                                long timestamp = json.getLong("stat_time") * 1000;
+                                System.out.println("⏱️ 提取时间戳: " + timestamp + " for element: " + element);
+                                return timestamp;
+                            } catch (Exception e) {
+                                System.err.println("❌ 时间戳提取失败: " + element);
+                                return System.currentTimeMillis();
+                            }
+                        }),
                 "read_dws_keyword_ranking"
         );
+
 
         // 打印原始数据
         dwsDataStream.print("📥 原始DWS关键词数据");
@@ -73,16 +87,23 @@ public class AdsKeywordRankingJob {
                 .filter(Objects::nonNull);
 
         // 按统计维度分组并计算TOP10
+        // 鎸夌粺璁＄淮搴﹀垎缁勫苟璁＄畻TOP10
         DataStream<String> resultStream = jsonDataStream
-                .keyBy(json -> Tuple5.of(
-                        json.getString("stat_time").substring(0, 10), // 日期部分
-                        json.getString("stat_dimension"),
-                        json.getString("terminal_type"),
-                        json.getLong("shop_id"),
-                        "dummy" // 占位符，因为我们需要对整个窗口进行排序
-                ))
+                .keyBy(new KeySelector<JSONObject, Tuple5<String, String, String, Long, String>>() {
+                    @Override
+                    public Tuple5<String, String, String, Long, String> getKey(JSONObject json) throws Exception {
+                        return Tuple5.of(
+                                json.getString("stat_time").substring(0, 10), // 鏃ユ湡閮ㄥ垎
+                                json.getString("stat_dimension"),
+                                json.getString("terminal_type"),
+                                json.getLong("shop_id"),
+                                "dummy" // 鍗犱綅绗︼紝鍥犱负鎴戜滑闇瑕佸鏁翠釜绐楀彛杩涜鎺掑簭
+                        );
+                    }
+                })
                 .window(TumblingEventTimeWindows.of(Time.days(1)))
                 .process(new KeywordRankingProcessWindowFunction());
+
 
         // 打印处理结果
         resultStream.print("📊 关键词排行结果");
@@ -109,10 +130,19 @@ public class AdsKeywordRankingJob {
                 Iterable<JSONObject> elements,
                 Collector<String> out) throws Exception {
 
+            System.out.println("🧮 开始处理关键词排行窗口数据 - Key: " + key + ", 窗口时间范围: " +
+                    new java.util.Date(context.window().getStart()) + " - " +
+                    new java.util.Date(context.window().getEnd()));
+
             List<JSONObject> dataList = new ArrayList<>();
+            int elementCount = 0;
             for (JSONObject element : elements) {
+                elementCount++;
+                System.out.println("📊 处理第" + elementCount + "个元素: " + element.toJSONString());
                 dataList.add(element);
             }
+
+            System.out.println("📋 窗口内总共 " + elementCount + " 个元素");
 
             // 按搜索访客数降序排序
             dataList.sort((o1, o2) -> {
@@ -121,20 +151,31 @@ public class AdsKeywordRankingJob {
                 return Long.compare(searchVisitorCount2, searchVisitorCount1);
             });
 
+            System.out.println("⬇️ 排序后数据:");
+            for (int i = 0; i < dataList.size(); i++) {
+                System.out.println("  " + (i+1) + ". " + dataList.get(i).toJSONString());
+            }
+
             // 取前10名
             int rank = 1;
+            System.out.println("🏅 开始排名处理:");
             for (JSONObject data : dataList) {
                 if (rank > 10) {
+                    System.out.println("🛑 已达到TOP10限制，停止处理");
                     break;
                 }
 
                 // 添加排名
                 data.put("rank_num", rank);
+                System.out.println("🏅 排名 #" + rank + " 数据: " + data.toJSONString());
                 out.collect(data.toJSONString());
                 rank++;
             }
+
+            System.out.println("🏁 关键词排行窗口处理完成 - Key: " + key + ", 总共输出 " + (rank-1) + " 条数据");
         }
     }
+
 
     /**
      * MySQL Sink for Keyword Ranking Data
@@ -159,7 +200,7 @@ public class AdsKeywordRankingJob {
                 // 创建表SQL
                 String createTableSql = "CREATE TABLE IF NOT EXISTS `ads_keyword_ranking` (" +
                         "`id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '排行唯一ID', " +
-                        "`stat_time` DATE NOT NULL COMMENT '统计时间（日/7天结束日期）', " +
+                        "`stat_time` VARCHAR(20) NOT NULL COMMENT '统计时间（日/7天结束日期）', " +
                         "`stat_dimension` VARCHAR(10) NOT NULL COMMENT '统计维度（day/7day）', " +
                         "`terminal_type` VARCHAR(20) NOT NULL COMMENT '终端类型（overall/pc/wireless）', " +
                         "`shop_id` BIGINT NOT NULL COMMENT '所属店铺ID', " +
@@ -240,6 +281,7 @@ public class AdsKeywordRankingJob {
             } catch (Exception e) {
                 System.err.println("❌ MySQL写入失败: " + e.getMessage());
                 System.err.println("📝 失败数据: " + value);
+                e.printStackTrace(); // 添加完整的异常堆栈信息
                 throw e;
             }
         }

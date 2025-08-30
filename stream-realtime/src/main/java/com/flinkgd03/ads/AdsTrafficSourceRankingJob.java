@@ -7,10 +7,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.stream.common.utils.KafkaUtils;
 import com.stream.common.utils.ConfigUtils;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.java.tuple.Tuple5;
+import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
@@ -55,9 +57,21 @@ public class AdsTrafficSourceRankingJob {
                         "ads_traffic_source_ranking_group_" + System.currentTimeMillis(),
                         OffsetsInitializer.earliest()
                 ),
-                WatermarkStrategy.noWatermarks(),
+                WatermarkStrategy.<String>forMonotonousTimestamps()
+                        .withTimestampAssigner((element, recordTimestamp) -> {
+                            try {
+                                JSONObject json = JSON.parseObject(element);
+                                long timestamp = json.getLong("stat_time");
+                                System.out.println("⏱️ 提取时间戳: " + timestamp + " for element: " + element);
+                                return timestamp;
+                            } catch (Exception e) {
+                                System.err.println("❌ 时间戳提取失败: " + element);
+                                return System.currentTimeMillis();
+                            }
+                        }),
                 "read_dws_traffic_source_ranking"
         );
+
 
         // 打印原始数据
         dwsDataStream.print("📥 原始DWS流量来源数据");
@@ -74,23 +88,20 @@ public class AdsTrafficSourceRankingJob {
                 })
                 .filter(Objects::nonNull);
 
-        // 按统计维度分组并计算TOP10
-        DataStream<String> resultStream = jsonDataStream
-                .keyBy(json -> Tuple5.of(
-                        json.getLong("stat_time"),
-                        json.getString("terminal_type"),
-                        json.getString("traffic_source_first"),
-                        json.getString("traffic_source_second"),
-                        json.getLong("shop_id")
-                ))
-                .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-                .process(new TrafficSourceRankingProcessWindowFunction());
+        // 按统计维度分组（stat_time按小时, terminal_type, shop_id）
+        KeyedStream<JSONObject, Tuple3<Long, String, Long>> keyedStream = jsonDataStream
+                .keyBy(new TrafficSourceKeySelector());
+
+        // 按小时窗口聚合，计算每个流量来源的总访客数
+        DataStream<String> aggregatedStream = keyedStream
+                .window(TumblingEventTimeWindows.of(Time.hours(1)))
+                .process(new TrafficSourceAggregationProcessWindowFunction());
 
         // 打印处理结果
-        resultStream.print("📊 流量来源排行结果");
+        aggregatedStream.print("📊 流量来源聚合结果");
 
         // 写入MySQL
-        resultStream.addSink(new TrafficSourceRankingMysqlSink())
+        aggregatedStream.addSink(new TrafficSourceRankingMysqlSink())
                 .name("mysql_traffic_source_ranking_sink")
                 .uid("mysql_traffic_source_ranking_sink_uid");
 
@@ -99,22 +110,69 @@ public class AdsTrafficSourceRankingJob {
     }
 
     /**
-     * 流量来源排行窗口处理函数
+     * 流量来源Key选择器
+     * 按小时时间戳、终端类型、店铺ID分组
      */
-    private static class TrafficSourceRankingProcessWindowFunction
-            extends ProcessWindowFunction<JSONObject, String, Tuple5<Long, String, String, String, Long>, TimeWindow> {
+    private static class TrafficSourceKeySelector implements KeySelector<JSONObject, Tuple3<Long, String, Long>> {
+        @Override
+        public Tuple3<Long, String, Long> getKey(JSONObject json) throws Exception {
+            long hourTime = json.getLong("stat_time") / (60 * 60 * 1000) * (60 * 60 * 1000); // 按小时分组
+            return Tuple3.of(
+                    hourTime,
+                    json.getString("terminal_type"),
+                    json.getLong("shop_id")
+            );
+        }
+    }
+
+    /**
+     * 流量来源聚合窗口处理函数
+     */
+    private static class TrafficSourceAggregationProcessWindowFunction
+            extends ProcessWindowFunction<JSONObject, String, Tuple3<Long, String, Long>, TimeWindow> {
 
         @Override
         public void process(
-                Tuple5<Long, String, String, String, Long> key,
+                Tuple3<Long, String, Long> key,
                 Context context,
                 Iterable<JSONObject> elements,
                 Collector<String> out) throws Exception {
 
-            List<JSONObject> dataList = new ArrayList<>();
+            // 按流量来源分组聚合
+            Map<String, JSONObject> sourceAggregationMap = new HashMap<>();
+
             for (JSONObject element : elements) {
-                dataList.add(element);
+                String sourceKey = element.getString("traffic_source_first") + "|" +
+                        element.getString("traffic_source_second");
+
+                if (sourceAggregationMap.containsKey(sourceKey)) {
+                    // 累加指标
+                    JSONObject aggregated = sourceAggregationMap.get(sourceKey);
+                    aggregated.put("visitor_count",
+                            aggregated.getLongValue("visitor_count") + element.getLongValue("visitor_count"));
+                    aggregated.put("product_visitor_count",
+                            aggregated.getLongValue("product_visitor_count") + element.getLongValue("product_visitor_count"));
+                    aggregated.put("product_pay_amount",
+                            new BigDecimal(aggregated.getString("product_pay_amount")).add(new BigDecimal(element.getString("product_pay_amount"))));
+                } else {
+                    // 第一次出现，复制并放入
+                    JSONObject copy = new JSONObject();
+                    copy.put("stat_time", element.getLong("stat_time"));
+                    copy.put("terminal_type", element.getString("terminal_type"));
+                    copy.put("shop_id", element.getLong("shop_id"));
+                    copy.put("traffic_source_first", element.getString("traffic_source_first"));
+                    copy.put("traffic_source_second", element.getString("traffic_source_second"));
+                    copy.put("visitor_count", element.getLongValue("visitor_count"));
+                    copy.put("product_visitor_count", element.getLongValue("product_visitor_count"));
+                    copy.put("product_pay_amount", new BigDecimal(element.getString("product_pay_amount")));
+                    copy.put("sub_source_list", element.getJSONArray("sub_source_list"));
+                    copy.put("related_product_id", element.getLong("related_product_id"));
+                    sourceAggregationMap.put(sourceKey, copy);
+                }
             }
+
+            // 转换为列表并排序
+            List<JSONObject> dataList = new ArrayList<>(sourceAggregationMap.values());
 
             // 按访客数降序排序
             dataList.sort((o1, o2) -> {
@@ -123,7 +181,7 @@ public class AdsTrafficSourceRankingJob {
                 return Long.compare(visitorCount2, visitorCount1);
             });
 
-            // 取前10名
+            // 取前10名并添加排名
             int rank = 1;
             for (JSONObject data : dataList) {
                 if (rank > 10) {
@@ -203,6 +261,7 @@ public class AdsTrafficSourceRankingJob {
             }
         }
 
+
         @Override
         public void invoke(String value, Context context) throws Exception {
             try {
@@ -249,7 +308,7 @@ public class AdsTrafficSourceRankingJob {
                 upsertPreparedStatement.setString(5, trafficSourceSecond);
                 upsertPreparedStatement.setLong(6, visitorCount);
                 upsertPreparedStatement.setInt(7, rankNum);
-                upsertPreparedStatement.setString(8, String.valueOf(subSourceList != null ? subSourceList.size() : null));
+                upsertPreparedStatement.setString(8, subSourceList != null ? JSON.toJSONString(subSourceList) : null);
                 if (relatedProductId != null) {
                     upsertPreparedStatement.setLong(9, relatedProductId);
                 } else {
@@ -265,6 +324,7 @@ public class AdsTrafficSourceRankingJob {
             } catch (Exception e) {
                 System.err.println("❌ MySQL写入失败: " + e.getMessage());
                 System.err.println("📝 失败数据: " + value);
+                e.printStackTrace(); // 添加完整的异常堆栈信息
                 throw e;
             }
         }
